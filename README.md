@@ -1,5 +1,9 @@
-# ai-smart-walker
+# ── Daily startup ──────────────────────────────
+cd C:\Users\aylia\VScode\ai-smart-walker
+venv\Scripts\activate
 
-RUN VIRTUAL ENVIRONMENT
-- cd C:\Users\aylia\VScode\ai-smart-walker venv\Scripts\activate [ENTERS virtual environment]
-- pip install -r requirements.txt [loads previous environment]
+# ── First time only (or after pulling new changes) ──
+pip install -r requirements.txt
+
+# ── When you install new package ─────────────────
+pip freeze > requirements.txt
