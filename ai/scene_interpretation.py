@@ -13,26 +13,50 @@ from typing import Optional
 from object_detection import Detection
 
 
-# ── Object priority config ─────────────────────────────────────────────────────
+# ----- OBJECT PRIORITY CONFIG -----
 # Higher number = more urgent to announce.
 # Anything not listed gets priority 0 and is ignored.
 
 PRIORITY_MAP: dict[str, int] = {
-    "person":        10,
-    "bicycle":        9,
-    "motorcycle":     9,
-    "car":            8,
-    "truck":          8,
-    "bus":            8,
-    "dog":            7,
-    "cat":            6,
-    "chair":          5,
-    "bench":          5,
-    "dining table":   4,
-    "potted plant":   3,
-    "backpack":       2,
-    "suitcase":       2,
-    "umbrella":       2,
+    # People -- always highest, they move unpredictably
+    "person":           10,
+
+    # Stairs / drop hazards -- critical fall risk
+    # NOTE: we need to custom train this
+    "stairs":            9,
+
+    # Pets -- move fast, low to ground, easy to trip over
+    "dog":               8,
+    "cat":               8,
+
+    # Furniture at walking height -- direct collision risk
+    "chair":             7,
+    "dining table":      7,
+    "bench":             6,
+    "couch":             6,
+    "bed":               5,
+
+    # Bathroom hazards
+    "toilet":            5,
+    "sink":              4,
+
+    # Clutter on the floor -- trip hazards
+    "suitcase":          5,
+    "backpack":          5,
+    "handbag":           4,
+    "umbrella":          4,
+    "sports ball":       4,
+    "skateboard":        4,
+
+    # Low-priority awareness objects
+    "potted plant":      3,
+    "bottle":            2,
+    "cup":               2,
+    "book":              2,
+    "laptop":            2,
+    "tv":                2,
+    "refrigerator":      2,
+    "door":              2,
 }
 
 # Distance thresholds in meters -- used once ultrasonic sensors are connected.
@@ -42,7 +66,7 @@ URGENCY_HIGH     = 2.0   # slow down
 URGENCY_MEDIUM   = 4.0   # heads up
 
 
-# ── Data structures ────────────────────────────────────────────────────────────
+# ----- DATA STRUCTURES -----
 
 @dataclass
 class ObstacleSummary:
@@ -69,7 +93,7 @@ class SceneSummary:
         return len(self.obstacles) == 0
 
 
-# ── Interpreter ────────────────────────────────────────────────────────────────
+# ----- INTERPRETER -----
 
 class SceneInterpreter:
     """
@@ -145,16 +169,17 @@ class SceneInterpreter:
         return "low"
 
 
-# ── Quick test ─────────────────────────────────────────────────────────────────
+# ----- QUICK TEST -----
 
 if __name__ == "__main__":
 
     # Simulate what the detector would return from the bus.jpg test image
     mock_detections = [
-        Detection(label="bus",    confidence=0.87, bbox=(22,  231, 805, 756), distance_m=None),
-        Detection(label="person", confidence=0.87, bbox=(48,  398, 245, 902), distance_m=1.2),
-        Detection(label="person", confidence=0.85, bbox=(669, 392, 809, 877), distance_m=3.5),
-        Detection(label="person", confidence=0.83, bbox=(221, 405, 344, 857), distance_m=0.6),
+    Detection(label="chair",   confidence=0.91, bbox=(50,  300, 200, 500), distance_m=0.7),
+    Detection(label="person",  confidence=0.88, bbox=(300, 100, 500, 600), distance_m=1.5),
+    Detection(label="cat",     confidence=0.76, bbox=(550, 400, 650, 520), distance_m=0.9),
+    Detection(label="bottle",  confidence=0.65, bbox=(100, 450, 160, 550), distance_m=2.1),
+    Detection(label="couch",   confidence=0.82, bbox=(400, 200, 700, 500), distance_m=3.0),
     ]
 
     # Note: the image from your test was 809px wide, not 640 -- set frame_width to match
