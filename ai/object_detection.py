@@ -17,17 +17,17 @@ from typing import Optional
 import os
 
 
-# ── Detection result container ────────────────────────────────────────────────
+# ----- DETECTOR RESULT CONTAINER -----
 
 @dataclass
 class Detection:
     label: str          # e.g. "person", "chair", "bicycle"
-    confidence: float   # 0.0 – 1.0
+    confidence: float   # scale of 0.0 – 1.0
     bbox: tuple         # (x1, y1, x2, y2) in pixels
     distance_m: Optional[float] = None  # filled in later by ultrasonic data
 
 
-# ── Detector class ────────────────────────────────────────────────────────────
+# ----- DETECTOR CLASS -----
 
 class ObjectDetector:
     """
@@ -112,12 +112,12 @@ class ObjectDetector:
         return annotated
 
 
-# ── Quick test ────────────────────────────────────────────────────────────────
+# -----QUICK TEST-----
 
 if __name__ == "__main__":
     import urllib.request
 
-    # Download a sample street scene if no test image exists
+    # Download a sample street scene if no test image exists alr
     TEST_IMAGE = "test_scene.jpg"
     if not os.path.exists(TEST_IMAGE):
         print("Downloading test image...")
