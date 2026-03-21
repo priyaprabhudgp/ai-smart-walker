@@ -1,5 +1,5 @@
 # Daily startup 
-cd C:\Users\aylia\VScode\ai-smart-walker
+cd C:\Users\aylia\VScode\ai-smart-walker \n
 venv\Scripts\activate
 
 # First time only (or after pulling new changes) 
