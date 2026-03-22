@@ -11,6 +11,8 @@ import time
 import threading
 from typing import Optional
 from scene_interpretation import SceneSummary, ObstacleSummary
+from dotenv import load_dotenv
+load_dotenv()
 
 
 # ----- LLM personality prompt -----
@@ -19,7 +21,6 @@ SYSTEM_PROMPT = """You are a warm, concise voice assistant built into a smart wa
 for elderly people at home. Your job is to alert the user to nearby obstacles.
 
 Rules:
-- Keep responses to one short sentence (under 12 words)
 - Sound warm and natural, not robotic
 - Always mention what the object is and where it is (left, center, or right)
 - If distance is given, include it naturally
@@ -73,52 +74,58 @@ class AlertCooldown:
 
 # ----- LLM CALLER -----
 
-def _call_llm(prompt: str, timeout: float = 1.5) -> Optional[str]:
+import time
+
+# Global variable to track the last time we actually hit the internet
+_LAST_API_CALL_TIME = 0.0
+API_MIN_INTERVAL = 4.0 # Force at least 4 seconds between ANY network calls
+
+def _call_llm(prompt: str, timeout: float = 5.0) -> Optional[str]:
     import urllib.request
+    import urllib.error
     import json
     import os
+    
+    global _LAST_API_CALL_TIME
+    
+    # 1. Physical Throttle: Don't even try if we just called it
+    now = time.monotonic()
+    if now - _LAST_API_CALL_TIME < API_MIN_INTERVAL:
+        #print("[DEBUG] Throttled -- skipping API call")
+        return None 
+    
+    #print("[DEBUG] Attempting API call...")
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
+    
+    payload = json.dumps({
+        "contents": [{"parts": [{"text": SYSTEM_PROMPT + "\n\n" + prompt}]}],
+        "generationConfig": {"maxOutputTokens": 500}
+    }).encode()
 
-    result = [None]
-    error  = [None]
+    try:
+        _LAST_API_CALL_TIME = now # Update timestamp before the call
+        req = urllib.request.Request(
+            url, data=payload, 
+            headers={"Content-Type": "application/json"}, 
+            method="POST"
+        )
+        
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read())
+            #rint(f"[DEBUG] Raw response: {data}")
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-    def call():
-        try:
-            api_key = os.environ.get("GEMINI_API_KEY", "")
-            payload = json.dumps({
-                "system_instruction": {
-                    "parts": [{"text": SYSTEM_PROMPT}]
-                },
-                "contents": [{
-                    "parts": [{"text": prompt}]
-                }],
-                "generationConfig": {
-                    "maxOutputTokens": 60,
-                }
-            }).encode()
-
-            req = urllib.request.Request(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}",
-                data=payload,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                data = json.loads(resp.read())
-                result[0] = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-
-        except Exception as e:
-            error[0] = str(e)
-
-    thread = threading.Thread(target=call, daemon=True)
-    thread.start()
-    thread.join(timeout=timeout)
-
-    if result[0]:
-        return result[0]
-    if error[0]:
-        print(f"[LanguageGenerator] LLM error: {error[0]} -- using fallback")
-    return None
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            print("[LanguageGenerator] 429 Error: Rate limit reached. Cooling down...")
+            # Optional: Increase the global interval temporarily
+            _LAST_API_CALL_TIME += 10 
+            #print(f"[DEBUG] HTTP Error {e.code}: {e.read().decode()}")
+        return None
+    except Exception as e:
+        print(f"[LanguageGenerator] Connection Error: {e}")
+        return None
 
 
 # ----- GENERATOR -----
@@ -151,63 +158,36 @@ class LanguageGenerator:
         self.llm_timeout       = llm_timeout
 
     def generate(self, scene: SceneSummary) -> Optional[str]:
-        """
-        Returns a string to speak, or None if nothing should be spoken right now.
-        Always speaks the single highest priority obstacle only.
-        """
         if scene.is_clear:
             if self.clear_cooldown.should_speak("clear"):
                 return CLEAR_PATH_MESSAGE
             return None
 
-        top = scene.top_obstacle
-        if top is None:
+        if not self.obstacle_cooldown.should_speak("scene"):
             return None
 
-        key = f"{top.label}:{top.position}"
-        if not self.obstacle_cooldown.should_speak(key):
-            return None
-
-        return self._generate_alert(top)
-
-    def generate_all(self, scene: SceneSummary) -> list[str]:
-        """
-        Generate alerts for ALL obstacles in the scene (cooldown-filtered).
-        Returns a list -- speak them in order, most urgent first.
-        """
-        if scene.is_clear:
-            msg = self.generate(scene)
-            return [msg] if msg else []
-
-        alerts = []
-        for obs in scene.obstacles:
-            key = f"{obs.label}:{obs.position}"
-            if self.obstacle_cooldown.should_speak(key):
-                alerts.append(self._generate_alert(obs))
-        return alerts
-
-    def _generate_alert(self, obs: ObstacleSummary) -> str:
-        """Try LLM first, fall back to template silently."""
         if self.use_llm:
-            llm_result = _call_llm(self._build_prompt(obs), self.llm_timeout)
+            llm_result = _call_llm(self._build_prompt(scene), self.llm_timeout)
             if llm_result:
                 return llm_result
 
-        return self._render_template(obs)
+        # fallback -- just speak the top obstacle
+        alerts = []
+        for obs in scene.obstacles:
+            alerts.append(self._render_template(obs))
+        return " ".join(alerts)
 
-    def _build_prompt(self, obs: ObstacleSummary) -> str:
-        """Build the prompt sent to the LLM."""
-        dist = (
-            f"{obs.distance_m:.1f} meters away"
-            if obs.distance_m else "unknown distance"
-        )
+    def _build_prompt(self, scene: SceneSummary) -> str:
+        """Build a prompt describing the full scene."""
+        lines = []
+        for obs in scene.obstacles:
+            dist = f"{obs.distance_m:.1f} meters away" if obs.distance_m else "unknown distance"
+            lines.append(f"- {obs.label} on the {obs.position}, {dist}, urgency: {obs.urgency}")
+        obstacles_text = "\n".join(lines)
         return (
-            f"Alert the user about this obstacle:\n"
-            f"Object: {obs.label}\n"
-            f"Position: {obs.position}\n"
-            f"Distance: {dist}\n"
-            f"Urgency: {obs.urgency}\n"
-            f"Generate one short spoken alert."
+            f"Describe the surrounding obstacles to the user in one warm, natural sentence:\n"
+            f"{obstacles_text}\n"
+            f"You MUST mention each obstacle, its position, and distance."
         )
 
     def _render_template(self, obs: ObstacleSummary) -> str:
@@ -250,15 +230,12 @@ if __name__ == "__main__":
 
     print("=== WITH LLM ===")
     gen_llm = LanguageGenerator(cooldown_seconds=0, use_llm=True)
-    alert = gen_llm.generate(scene)
-    print(f'  -> "{alert}"\n')
+    print(f'  -> "{gen_llm.generate(scene)}"\n')
 
     print("=== WITHOUT LLM (template fallback) ===")
     gen_template = LanguageGenerator(cooldown_seconds=0, use_llm=False)
     gen_template.obstacle_cooldown.reset()
-    alerts = gen_template.generate_all(scene)
-    for a in alerts:
-        print(f'  -> "{a}"')
+    print(f'  -> "{gen_template.generate(scene)}"')
 
     print("\n=== clear path ===")
     empty = SceneSummary(obstacles=[])
