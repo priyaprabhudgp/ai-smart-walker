@@ -5,6 +5,7 @@ venv\Scripts\activate
 
 # First time only (or after pulling new changes) 
 WINDOWS: pip install -r requirements.txt
+
 PI: pip install -r requirements-pi.txt
 
 # When you install new package 
