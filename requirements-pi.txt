@@ -1,0 +1,36 @@
+# Raspberry Pi runtime requirements for ai-smart-walker
+# Target: Raspberry Pi OS 64-bit (Bookworm) + Camera Module 3
+#
+# These are the ONLY packages you need to pip-install on the Pi.
+# numpy, pillow, python-dotenv, picamera2, requests, tqdm, Flask, etc.
+# are ALREADY present in Raspberry Pi OS -- do NOT reinstall them.
+#
+# Install order matters -- run these two commands in sequence:
+#
+#   Step 1 (torch first, ultralytics needs it):
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#
+#   Step 2 (rest of the pipeline):
+#     pip install -r requirements-pi.txt
+#
+# If you are using a venv on the Pi, add --system-site-packages when creating it
+# so picamera2 (system package) is still accessible:
+#     python3 -m venv --system-site-packages venv
+
+# --- Object detection ---
+ultralytics==8.4.23          # YOLOv8n; torch must already be installed (see above)
+opencv-python-headless       # cv2 without display libs -- Pi OS has no opencv by default
+
+# --- Gemini LLM ---
+google-generativeai==0.8.5   # Gemini 2.5-flash-lite API
+
+# ============================================================
+# Already on your Pi -- DO NOT re-pin these:
+#   numpy==2.2.4         (conflicts with ultralytics if you downgrade)
+#   pillow==11.1.0
+#   python-dotenv==1.0.1
+#   picamera2==0.3.34    (system package, needs --system-site-packages venv)
+#   requests==2.32.3
+#   tqdm==4.67.1
+#   Flask==3.1.1
+# ============================================================
