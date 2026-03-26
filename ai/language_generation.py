@@ -9,10 +9,11 @@ so an alert always gets spoken in real time.
 
 import time
 import threading
+import os
 from typing import Optional
 from scene_interpretation import SceneSummary, ObstacleSummary
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'), override=True)
 
 
 # ----- LLM personality prompt -----
@@ -80,51 +81,47 @@ import time
 _LAST_API_CALL_TIME = 0.0
 API_MIN_INTERVAL = 4.0 # Force at least 4 seconds between ANY network calls
 
-def _call_llm(prompt: str, timeout: float = 5.0) -> Optional[str]:
+def _call_llm(prompt: str, timeout: float = 8.0) -> Optional[str]:
     import urllib.request
     import urllib.error
     import json
     import os
-    
+
     global _LAST_API_CALL_TIME
-    
-    # 1. Physical Throttle: Don't even try if we just called it
+
     now = time.monotonic()
     if now - _LAST_API_CALL_TIME < API_MIN_INTERVAL:
-        #print("[DEBUG] Throttled -- skipping API call")
-        return None 
-    
-    #print("[DEBUG] Attempting API call...")
+        return None
+
     api_key = os.environ.get("GEMINI_API_KEY", "")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
-    
+
     payload = json.dumps({
         "contents": [{"parts": [{"text": SYSTEM_PROMPT + "\n\n" + prompt}]}],
         "generationConfig": {"maxOutputTokens": 500}
     }).encode()
 
+    _LAST_API_CALL_TIME = now
+
     try:
-        _LAST_API_CALL_TIME = now # Update timestamp before the call
         req = urllib.request.Request(
-            url, data=payload, 
-            headers={"Content-Type": "application/json"}, 
+            url, data=payload,
+            headers={"Content-Type": "application/json"},
             method="POST"
         )
-        
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read())
-            #rint(f"[DEBUG] Raw response: {data}")
             return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     except urllib.error.HTTPError as e:
         if e.code == 429:
-            print("[LanguageGenerator] 429 Error: Rate limit reached. Cooling down...")
-            # Optional: Increase the global interval temporarily
-            _LAST_API_CALL_TIME += 10 
-            #print(f"[DEBUG] HTTP Error {e.code}: {e.read().decode()}")
+            print("[LanguageGenerator] Rate limit hit, cooling down...")
+            _LAST_API_CALL_TIME += 10
+        else:
+            print(f"[LanguageGenerator] HTTP {e.code}: {e.read().decode()}")
         return None
     except Exception as e:
-        print(f"[LanguageGenerator] Connection Error: {e}")
+        print(f"[LanguageGenerator] Error: {e}")
         return None
 
 
@@ -150,7 +147,7 @@ class LanguageGenerator:
         speak_clear_path: bool     = True,
         clear_path_cooldown: float = 10.0,
         use_llm: bool              = True,
-        llm_timeout: float         = 1.5,
+        llm_timeout: float         = 5.0,
     ):
         self.obstacle_cooldown = AlertCooldown(cooldown_seconds)
         self.clear_cooldown    = AlertCooldown(clear_path_cooldown)
@@ -169,9 +166,10 @@ class LanguageGenerator:
         if self.use_llm:
             llm_result = _call_llm(self._build_prompt(scene), self.llm_timeout)
             if llm_result:
+                #print("[DEBUG] Used LLM")   
                 return llm_result
 
-        # fallback -- just speak the top obstacle
+        #print("[DEBUG] Used template")     
         alerts = []
         for obs in scene.obstacles:
             alerts.append(self._render_template(obs))
