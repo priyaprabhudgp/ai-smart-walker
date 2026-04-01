@@ -1,4 +1,4 @@
-# Daily startup 
+# Environment startup 
 cd C:\Users\aylia\VScode\ai-smart-walker
 
 venv\Scripts\activate
