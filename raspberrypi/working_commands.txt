@@ -1,0 +1,20 @@
+#bash
+
+#take a photo
+rpicam-still -o photo.jpg
+
+#take a photo and configure options
+rpicam-still -o photo.jpg --width 1920 --height 1080 -t 1000 --nopreview
+
+#raw h264 video
+rpicam-vid -o video.h264 -t 5000
+
+#video -- save as mp4
+rpicam-vid -o video.mp4 --codec libav -t 5000
+
+#video with options
+rpicam-vid -o video.h264 -t 10000 --width 1920 --height 1080 --framerate 30 --nopreview
+
+#video conversion
+ffmpeg -i video.h264 -c copy video.mp4
+
