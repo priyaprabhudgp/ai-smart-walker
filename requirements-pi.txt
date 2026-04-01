@@ -21,6 +21,9 @@
 ultralytics==8.4.23          # YOLOv8n; torch must already be installed (see above)
 opencv-python-headless       # cv2 without display libs -- Pi OS has no opencv by default
 
+# --- Text to speech ---
+pyttsx3                      # offline TTS via espeak; run: sudo apt install espeak
+
 # --- Gemini LLM ---
 google-generativeai==0.8.5   # Gemini 2.5-flash-lite API
 

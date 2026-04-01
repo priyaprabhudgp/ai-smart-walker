@@ -19,6 +19,7 @@ import time
 import argparse
 import sys
 import os
+import pyttsx3
 
 # Guard: fail early with a clear message if not on Pi
 try:
@@ -60,6 +61,9 @@ def init_camera() -> Picamera2:
 def run(use_llm: bool = True):
     print("[camera_stream] Starting pipeline. Press Ctrl+C to stop.\n")
 
+    tts = pyttsx3.init()
+    tts.setProperty("rate", 150)  # slightly slower than default, easier to understand
+
     cam        = init_camera()
     detector   = ObjectDetector(stairs_model_path="best.pt", device="cpu")
     interpreter = SceneInterpreter(frame_width=FRAME_WIDTH)
@@ -89,9 +93,11 @@ def run(use_llm: bool = True):
             # 4. Generate alert
             alert = generator.generate(scene)
 
-            # 5. Output alert (teammates: hook TTS / iPhone send here)
+            # 5. Speak alert through speaker
             if alert:
                 print(f"[ALERT] {alert}")
+                tts.say(alert)
+                tts.runAndWait()
 
             # Throttle loop to LOOP_INTERVAL
             elapsed = time.monotonic() - loop_start
