@@ -61,7 +61,7 @@ def run(use_llm: bool = True):
     print("[camera_stream] Starting pipeline. Press Ctrl+C to stop.\n")
 
     cam        = init_camera()
-    detector   = ObjectDetector(device="cpu")
+    detector   = ObjectDetector(stairs_model_path="best.pt", device="cpu")
     interpreter = SceneInterpreter(frame_width=FRAME_WIDTH)
     generator  = LanguageGenerator(
         cooldown_seconds=4.0,

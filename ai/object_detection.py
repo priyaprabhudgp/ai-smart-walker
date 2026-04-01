@@ -31,12 +31,11 @@ class Detection:
 
 class ObjectDetector:
     """
-    Wraps a YOLOv8 model. Call detect() with any frame or image path.
+    Wraps YOLOv8 models. Call detect() with any frame or image path.
 
     Args:
-        model_path: Path to .pt weights file. Defaults to yolov8n.pt
-                    (nano — fastest, good enough for walker use case).
-                    Ultralytics auto-downloads it on first run.
+        model_path:       Path to primary .pt weights (default yolov8n.pt, all COCO classes).
+        stairs_model_path: Optional path to custom stairs-only model. Results are merged.
         confidence_threshold: Minimum score to include a detection.
         device: "cpu", "cuda", or "mps" (Apple Silicon). Defaults to cpu.
     """
@@ -46,6 +45,7 @@ class ObjectDetector:
     def __init__(
         self,
         model_path: str = DEFAULT_MODEL,
+        stairs_model_path: Optional[str] = None,
         confidence_threshold: float = 0.45,
         device: str = "cpu",
     ):
@@ -53,6 +53,12 @@ class ObjectDetector:
         self.device = device
         print(f"[ObjectDetector] Loading model: {model_path}")
         self.model = YOLO(model_path)
+
+        self.stairs_model = None
+        if stairs_model_path and os.path.exists(stairs_model_path):
+            print(f"[ObjectDetector] Loading stairs model: {stairs_model_path}")
+            self.stairs_model = YOLO(stairs_model_path)
+
         print("[ObjectDetector] Ready.")
 
     def detect(self, frame) -> list[Detection]:
@@ -83,6 +89,23 @@ class ObjectDetector:
                     confidence=confidence,
                     bbox=(x1, y1, x2, y2),
                 ))
+
+        # Merge stairs detections from custom model if available
+        if self.stairs_model is not None:
+            stairs_results = self.stairs_model(
+                frame,
+                conf=self.confidence_threshold,
+                device=self.device,
+                verbose=False,
+            )
+            for result in stairs_results:
+                for box in result.boxes:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    detections.append(Detection(
+                        label="stairs",
+                        confidence=float(box.conf),
+                        bbox=(x1, y1, x2, y2),
+                    ))
 
         detections.sort(key=lambda d: d.confidence, reverse=True)
         return detections
