@@ -3,6 +3,12 @@ cd C:\Users\aylia\VScode\ai-smart-walker
 
 venv\Scripts\activate
 
+for pi: 
+
+source ~/ai-smart-walker/venv/bin/activate
+
+cd ~/ai-smart-walker/ai
+
 # First time only (or after pulling new changes) 
 *WINDOWS*: 
 
