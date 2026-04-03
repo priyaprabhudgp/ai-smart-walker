@@ -32,6 +32,7 @@ except ImportError:
 from object_detection import ObjectDetector
 from scene_interpretation import SceneInterpreter
 from language_generation import LanguageGenerator
+from ultrasonic import UltrasonicArray
 
 
 # ----- CONFIG -----
@@ -65,6 +66,7 @@ def run(use_llm: bool = True):
     tts.setProperty("rate", 150)  # slightly slower than default, easier to understand
 
     cam        = init_camera()
+    sensors    = UltrasonicArray()
     detector   = ObjectDetector(stairs_model_path="best.pt", device="cpu")
     interpreter = SceneInterpreter(frame_width=FRAME_WIDTH)
     generator  = LanguageGenerator(
@@ -81,19 +83,30 @@ def run(use_llm: bool = True):
             # 1. Capture frame (RGB numpy array from picamera2)
             frame_rgb = cam.capture_array()
 
-            # picamera2 gives RGB -- convert to BGR for YOLO/cv2 compatibility
+            # picamera2 gives RGB --> convert to BGR for YOLO/cv2 compatibility
             frame_bgr = frame_rgb[:, :, ::-1]
 
-            # 2. Detect objects
+            # 2. Read ultrasonic distances
+            distances = sensors.read_all()
+            # distances = {"left": 0.42, "right": 1.1, "front": None, "down": None}
+
+            # 3. Detect objects
             detections = detector.detect(frame_bgr)
 
-            # 3. Interpret scene
+            # Assign distance to each detection based on its horizontal position
+            # detected objs gets their distance based on sensor zone
+            # feeds into interpretation and urgency is set based on obj dist
+            for d in detections:
+                position = interpreter._horizontal_position(d.bbox)
+                d.distance_m = distances.get(position)
+
+            # 4. Interpret scene
             scene = interpreter.interpret(detections)
 
-            # 4. Generate alert
+            # 5. Generate alert
             alert = generator.generate(scene)
 
-            # 5. Speak alert through speaker
+            # 6. Speak alert through speaker (text to speech)
             if alert:
                 print(f"[ALERT] {alert}")
                 tts.say(alert)
@@ -109,6 +122,7 @@ def run(use_llm: bool = True):
         print("\n[camera_stream] Stopped.")
     finally:
         cam.stop()
+        sensors.cleanup()
 
 
 # ----- ENTRY POINT -----

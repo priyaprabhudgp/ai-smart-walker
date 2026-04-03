@@ -16,6 +16,7 @@ ai-smart-walker/
 │   ├── language_generation.py   # Gemini API + template fallback
 │   ├── camera_stream.py         # live Pi camera loop (runs on Pi only)
 │   ├── pipeline_test.py         # end-to-end test with static images
+│   ├── ultrasonic.py            # 4x HC-SR04 sensor array (left/right wired, front/down pending)
 │   └── best.pt                  # custom trained stairs detection model
 ├── ios_app/                     # archived iOS app (not in use)
 ├── requirements.txt             # Windows dev dependencies
@@ -116,8 +117,12 @@ scp -r "C:\Users\aylia\VScode\ai-smart-walker\ai" pipriya@192.168.0.145:~/ai-sma
 ## Hardware Checklist
 
 - [ ] Camera Module 3 ribbon cable connected
-- [ ] Speaker plugged into Pi's 3.5mm audio jack
-- [ ] Ultrasonic sensor wired to GPIO pins
+- [ ] USB speaker plugged in (on order)
+- [ ] USB microphone plugged in (on order)
+- [x] Left ultrasonic sensor wired (TRIG=23, ECHO=24)
+- [x] Right ultrasonic sensor wired (TRIG=17, ECHO=27)
+- [ ] Front ultrasonic sensor (hardware pending — update pins in `ai/ultrasonic.py`)
+- [ ] Down ultrasonic sensor (hardware pending — update pins in `ai/ultrasonic.py`)
 - [ ] Pi connected to WiFi
 - [ ] `.env` present with `GEMINI_API_KEY`
 
