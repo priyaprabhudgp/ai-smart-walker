@@ -32,7 +32,7 @@ ai-smart-walker/
 |---|---|
 | ML Pipeline | object detection, scene interpretation, LLM alerts |
 | Hardware | ultrasonic sensors, GPIO, physical walker mounting |
-| iOS | archived |
+
 
 ---
 
