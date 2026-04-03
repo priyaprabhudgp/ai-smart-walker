@@ -40,6 +40,19 @@ ai-smart-walker/
 ```cmd
 cd C:\Users\aylia\VScode\ai-smart-walker
 venv\Scripts\activate
+<<<<<<< HEAD
+=======
+
+for pi: 
+
+source ~/ai-smart-walker/venv/bin/activate
+
+cd ~/ai-smart-walker/ai
+
+# First time only (or after pulling new changes) 
+*WINDOWS*: 
+
+>>>>>>> a17b23bfe6dd658812c0924921fc4a9bf1044db9
 pip install -r requirements.txt
 ```
 
