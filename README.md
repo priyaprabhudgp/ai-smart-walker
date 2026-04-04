@@ -1,9 +1,8 @@
 # AI Smart Walker
 
-An AI-powered smart walker that detects indoor obstacles and speaks natural alerts to the user via a built-in voice assistant.
+An AI-powered smart walker that helps users navigate indoor spaces using a Raspberry Pi, camera-based object detection, voice interaction, and spoken guidance.
 
-**Pipeline:** Camera Module 3 → YOLOv8n object detection → scene interpretation → Gemini 2.5 LLM → spoken alert via speaker
-
+Pipeline: Camera Module 3 + microphone input → YOLOv8n object detection → scene interpretation / navigation logic → spoken guidance through speaker
 ---
 
 ## Project Structure
@@ -18,7 +17,6 @@ ai-smart-walker/
 │   ├── pipeline_test.py         # end-to-end test with static images
 │   ├── ultrasonic.py            # 4x HC-SR04 sensor array (left/right wired, front/down pending)
 │   └── best.pt                  # custom trained stairs detection model
-├── ios_app/                     # archived iOS app (not in use)
 ├── requirements.txt             # Windows dev dependencies
 ├── requirements-pi.txt          # Raspberry Pi deployment dependencies
 └── .env                         # GEMINI_API_KEY (never commit this)
@@ -30,8 +28,9 @@ ai-smart-walker/
 
 | Role | Responsibility |
 |---|---|
-| ML Pipeline | object detection, scene interpretation, LLM alerts |
-| Hardware | ultrasonic sensors, GPIO, physical walker mounting |
+| ML / Perception | Object detection, scene interpretation, spoken alerts |
+| Navigation | Indoor map representation, route planning, instruction generation |
+| Hardware | Raspberry Pi setup, camera, microphone, speaker, walker mounting |
 
 
 ---
