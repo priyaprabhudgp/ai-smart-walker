@@ -5,10 +5,10 @@ Reads distance from up to 4 HC-SR04 ultrasonic sensors.
 Returns distances in meters, keyed by position: "left", "right", "front", "down"
 
 Wiring (BCM pin numbering):
-    Left  sensor: TRIG=23, ECHO=24   <- wired
-    Right sensor: TRIG=17, ECHO=27   <- wired
-    Front sensor: TRIG=?,  ECHO=?    <- hardware pending
-    Down  sensor: TRIG=?,  ECHO=?    <- hardware pending
+    Left  sensor: TRIG=23, ECHO=24
+    Right sensor: TRIG=17, ECHO=27
+    Front sensor: TRIG=5,  ECHO=6
+    Down  sensor: TRIG=13, ECHO=19
 
 Usage:
     from ultrasonic import UltrasonicArray
@@ -33,8 +33,8 @@ except ImportError:
 SENSORS: dict[str, dict] = {
     "left":  {"trig": 23, "echo": 24},
     "right": {"trig": 17, "echo": 27},
-    "front": {"trig": None, "echo": None},  # CHANGE ME
-    "down":  {"trig": None, "echo": None},  # CHANGE ME
+    "front": {"trig": 5,  "echo": 6},
+    "down":  {"trig": 13, "echo": 19},
 }
 
 TIMEOUT = 0.04   # max seconds to wait for echo (covers ~6m range)
@@ -120,3 +120,8 @@ class UltrasonicArray:
         """Release GPIO pins. Call when shutting down."""
         if GPIO_AVAILABLE:
             GPIO.cleanup()
+
+
+
+
+
