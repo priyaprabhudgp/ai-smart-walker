@@ -38,7 +38,7 @@ ai-smart-walker/
 ## Dev Setup (Windows)
 
 ```cmd
-cd C:\Users\aylia\VScode\ai-smart-walker
+cd C:\Users\<user>\VScode\ai-smart-walker
 venv\Scripts\activate
 <<<<<<< HEAD
 =======
@@ -70,14 +70,14 @@ python pipeline_test.py
 
 **1. Copy files to Pi (from Windows):**
 ```cmd
-scp -r "C:\Users\aylia\VScode\ai-smart-walker\ai" pipriya@192.168.0.145:~/ai-smart-walker/
-scp "C:\Users\aylia\VScode\ai-smart-walker\requirements-pi.txt" pipriya@192.168.0.145:~/ai-smart-walker/
-scp "C:\Users\aylia\VScode\ai-smart-walker\.env" pipriya@192.168.0.145:~/ai-smart-walker/
+scp -r "C:\Users\<user>\VScode\ai-smart-walker\ai" pipriya@<ip>:~/ai-smart-walker/
+scp "C:\Users\<user>\VScode\ai-smart-walker\requirements-pi.txt" pipriya@<ip>:~/ai-smart-walker/
+scp "C:\Users\<user>\VScode\ai-smart-walker\.env" pipriya@<ip>:~/ai-smart-walker/
 ```
 
 **2. SSH into Pi:**
 ```bash
-ssh pipriya@192.168.0.145
+ssh pipriya@<ip>
 ```
 
 **3. Install dependencies:**
@@ -108,7 +108,7 @@ Press `Ctrl+C` to stop.
 ### Pushing code updates to Pi (from Windows)
 
 ```cmd
-scp -r "C:\Users\aylia\VScode\ai-smart-walker\ai" pipriya@192.168.0.145:~/ai-smart-walker/
+scp -r "C:\Users\<user>\VScode\ai-smart-walker\ai" pipriya@<ip>:~/ai-smart-walker/
 ```
 
 ---
