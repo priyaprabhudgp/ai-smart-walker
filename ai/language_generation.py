@@ -154,7 +154,7 @@ class LanguageGenerator:
         self.use_llm           = use_llm
         self.llm_timeout       = llm_timeout
 
-    def generate(self, scene: SceneSummary) -> Optional[str]:
+    def generate(self, scene: SceneSummary, user_input: str = "") -> Optional[str]:
         if scene.is_clear:
             if self.clear_cooldown.should_speak("clear"):
                 return CLEAR_PATH_MESSAGE
@@ -164,7 +164,7 @@ class LanguageGenerator:
             return None
 
         if self.use_llm:
-            llm_result = _call_llm(self._build_prompt(scene), self.llm_timeout)
+            llm_result = _call_llm(self._build_prompt(scene, user_input), self.llm_timeout)
             if llm_result:
                 #print("[DEBUG] Used LLM")   
                 return llm_result
@@ -175,7 +175,7 @@ class LanguageGenerator:
             alerts.append(self._render_template(obs))
         return " ".join(alerts)
 
-    def _build_prompt(self, scene: SceneSummary) -> str:
+    def _build_prompt(self, scene: SceneSummary, user_input: str = "") -> str:
         """Build a prompt describing the full scene."""
         lines = []
         for obs in scene.obstacles:
@@ -183,10 +183,10 @@ class LanguageGenerator:
             lines.append(f"- {obs.label} on the {obs.position}, {dist}, urgency: {obs.urgency}")
         obstacles_text = "\n".join(lines)
         return (
-            f"Describe the surrounding obstacles to the user in one warm, natural sentence:\n"
-            f"{obstacles_text}\n"
-            f"You MUST mention each obstacle, its position, and distance."
-        )
+    f"The user said: '{user_input}'.\n\n"
+    f"Describe the surroundings and answer them naturally.\n"
+    f"{obstacles_text}"
+)
 
     def _render_template(self, obs: ObstacleSummary) -> str:
         """Fallback template renderer."""
