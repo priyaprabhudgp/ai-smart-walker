@@ -13,9 +13,10 @@ import sys
 import os
 import urllib.request
 
-from object_detection import ObjectDetector
+from object_detection import ObjectDetector, assign_distances
 from scene_interpretation import SceneInterpreter
 from language_generation import LanguageGenerator
+from ultrasonic import UltrasonicArray
 
 #print(f"[DEBUG] Key from env: {os.environ.get('GEMINI_API_KEY', 'NOT FOUND')[:8]}...")
 # ----- CONFIG -----
@@ -37,10 +38,16 @@ def run_pipeline(image_path: str, use_llm: bool = True) -> str:
     print(f"  Image: {image_path}")
     print(f"{'='*55}\n")
 
-    # Step 1: Object detection 
+    # Step 1: Object detection + sensor distances
     print("[ Step 1 ] Running object detection...")
     detector = ObjectDetector()
     detections = detector.detect_from_path(image_path)
+
+    sensors = UltrasonicArray()
+    distances = sensors.read_all()
+    print(f"  Sensor readings: {distances}")
+    assign_distances(detections, distances, FRAME_WIDTH)
+    sensors.cleanup()
 
     if not detections:
         print("  No objects detected.\n")

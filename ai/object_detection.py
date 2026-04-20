@@ -135,6 +135,28 @@ class ObjectDetector:
         return annotated
 
 
+def assign_distances(
+    detections: list[Detection],
+    distances: dict[str, Optional[float]],
+    frame_width: int,
+) -> list[Detection]:
+    """
+    Assigns sensor distances to detections based on horizontal position.
+    Each detection's bbox center is mapped to the left/front/right sensor zone.
+    Mutates detections in place and returns them.
+    """
+    third = frame_width / 3
+    for d in detections:
+        cx = (d.bbox[0] + d.bbox[2]) / 2
+        if cx < third:
+            d.distance_m = distances.get("left")
+        elif cx < 2 * third:
+            d.distance_m = distances.get("front")
+        else:
+            d.distance_m = distances.get("right")
+    return detections
+
+
 # -----QUICK TEST-----
 
 if __name__ == "__main__":
