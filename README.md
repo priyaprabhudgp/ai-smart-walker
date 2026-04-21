@@ -84,15 +84,6 @@ ai-smart-walker/
 
 ---
 
-## Team
-
-| Role | Responsibility |
-|---|---|
-| ML / Perception | Object detection, scene interpretation, spoken alerts |
-| Navigation | Indoor map, route planning, voice intent, instruction generation |
-| Hardware | Raspberry Pi, camera, microphone, speaker, walker mounting |
-
----
 
 ## Dev Setup (Windows)
 
