@@ -44,6 +44,7 @@ FRAME_WIDTH  = 640          # capture resolution width
 FRAME_HEIGHT = 480          # capture resolution height
 LOOP_INTERVAL = 0.5         # seconds between pipeline runs (2 fps processing)
 DOOR_COOLDOWN = 8.0         # seconds between repeated door announcements
+REPEAT_CUES   = ["repeat", "say that again", "what did you say", "come again", "pardon", "say again"]
 
 DOOR_MESSAGES = {
     "Open": "The door ahead is open, go through.",
@@ -74,9 +75,11 @@ def run(use_llm: bool = True):
 
     tts      = pyttsx3.init()
     tts.setProperty("rate", 150)
-    tts_lock = threading.Lock()
+    tts_lock  = threading.Lock()
+    last_spoken = [""]
 
     def speak(text: str):
+        last_spoken[0] = text
         print(f"[SPEAK] {text}")
         with tts_lock:
             tts.say(text)
@@ -100,6 +103,11 @@ def run(use_llm: bool = True):
         while True:
             text = listen()
             if not text:
+                continue
+
+            if any(cue in text.lower() for cue in REPEAT_CUES):
+                if last_spoken[0]:
+                    speak(last_spoken[0])
                 continue
 
             result = navigator.handle(text)

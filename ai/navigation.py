@@ -53,6 +53,10 @@ POSITION_CUES = [
     "i'm at",      "i am at",
 ]
 
+WHERE_AM_I_CUES   = ["where am i", "where are we", "whats my location", "what's my location", "my location"]
+WHERE_GOING_CUES  = ["where am i going", "where are we going", "whats my destination", "what's my destination", "where to"]
+STOP_CUES         = ["stop navigation", "cancel navigation", "stop", "cancel", "never mind", "forget it"]
+
 
 def _find_location(text: str, locations_sorted: list[tuple[str, str]]) -> Optional[str]:
     for phrase, node in locations_sorted:
@@ -149,6 +153,7 @@ class Navigator:
         }
         self._locations_sorted = _build_locations_sorted(data["locations"])
         self.current_position: str = data["default_start"]
+        self._current_destination: Optional[str] = None
 
     def update_position(self, node: str):
         self.current_position = node
@@ -158,6 +163,20 @@ class Navigator:
         Main entry point. Takes raw speech, updates position if declared,
         and returns spoken instructions if a destination was given.
         """
+        t = text.lower()
+
+        if any(cue in t for cue in WHERE_AM_I_CUES):
+            return f"You are currently in the {self.current_position.replace('_', ' ')}."
+
+        if any(cue in t for cue in WHERE_GOING_CUES):
+            if self._current_destination:
+                return f"You are heading to the {self._current_destination.replace('_', ' ')}."
+            return "You haven't set a destination yet."
+
+        if any(cue in t for cue in STOP_CUES):
+            self._current_destination = None
+            return "Navigation stopped. Just let me know when you're ready to go somewhere."
+
         intent = extract_intent(text, self._locations_sorted)
 
         if intent["current"]:
@@ -183,6 +202,7 @@ class Navigator:
         if path is None:
             return f"Sorry, I couldn't find a route to the {dest_name}."
 
+        self._current_destination = destination
         steps = [self._graph[path[i]][path[i + 1]] for i in range(len(path) - 1)]
         directions = ". ".join(step.capitalize() for step in steps) + "."
         return f"You are currently in the {current_name}, navigating to the {dest_name}. {directions}"
