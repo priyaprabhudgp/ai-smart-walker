@@ -140,14 +140,9 @@ def run(use_llm: bool = True):
                 door_state = detector.classify_door(frame_bgr)
                 if door_state and (time.monotonic() - last_door_spoken) >= DOOR_COOLDOWN:
                     last_door_spoken = time.monotonic()
-                    if door_state == "Open":
-                        next_instruction = navigator.advance_step()
-                        generator.set_navigating(navigator._current_destination is not None)
-                        speak(DOOR_MESSAGES["Open"] + " " + next_instruction)
-                    else:
-                        msg = DOOR_MESSAGES.get(door_state)
-                        if msg:
-                            speak(msg)
+                    msg = DOOR_MESSAGES.get(door_state)
+                    if msg:
+                        speak(msg)
 
             # 4. Interpret scene
             scene = interpreter.interpret(detections)

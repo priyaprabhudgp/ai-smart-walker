@@ -60,8 +60,9 @@ ai-smart-walker/
 
 ### Door Classification
 - `door.pt` classifies the center of the frame every frame during navigation
-- **Open** → speaks door message and advances to next step automatically
+- **Open** → tells the user the door is open and to go through
 - **Closed / Semi** → warns the user to open the door before continuing
+- The user manually says "next" after passing through — auto-advance is disabled since the camera cannot distinguish which specific door it is seeing
 
 ### Audio Priority During Navigation
 | Urgency | Behaviour |
