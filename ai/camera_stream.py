@@ -112,9 +112,8 @@ def run(use_llm: bool = True):
 
             result = navigator.handle(text)
             if result:
-                generator.set_navigating(True)
+                generator.set_navigating(navigator._current_destination is not None)
                 speak(result)
-                generator.set_navigating(False)
                 queued = generator.pop_queued_alert()
                 if queued:
                     speak(queued)
@@ -136,14 +135,19 @@ def run(use_llm: bool = True):
             detections = detector.detect(frame_bgr)
             assign_distances(detections, distances, FRAME_WIDTH)
 
-            # 3. Door classification (only announce during active navigation)
+            # 3. Door classification (only during active navigation)
             if generator.is_navigating:
                 door_state = detector.classify_door(frame_bgr)
                 if door_state and (time.monotonic() - last_door_spoken) >= DOOR_COOLDOWN:
-                    msg = DOOR_MESSAGES.get(door_state)
-                    if msg:
-                        last_door_spoken = time.monotonic()
-                        speak(msg)
+                    last_door_spoken = time.monotonic()
+                    if door_state == "Open":
+                        next_instruction = navigator.advance_step()
+                        generator.set_navigating(navigator._current_destination is not None)
+                        speak(next_instruction)
+                    else:
+                        msg = DOOR_MESSAGES.get(door_state)
+                        if msg:
+                            speak(msg)
 
             # 4. Interpret scene
             scene = interpreter.interpret(detections)

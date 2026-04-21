@@ -56,6 +56,7 @@ POSITION_CUES = [
 WHERE_AM_I_CUES   = ["where am i", "where are we", "whats my location", "what's my location", "my location"]
 WHERE_GOING_CUES  = ["where am i going", "where are we going", "whats my destination", "what's my destination", "where to"]
 STOP_CUES         = ["stop navigation", "cancel navigation", "stop", "cancel", "never mind", "forget it"]
+NEXT_CUES         = ["next", "continue", "what's next", "whats next", "next step", "keep going", "and then", "go on"]
 
 
 def _find_location(text: str, locations_sorted: list[tuple[str, str]]) -> Optional[str]:
@@ -154,9 +155,34 @@ class Navigator:
         self._locations_sorted = _build_locations_sorted(data["locations"])
         self.current_position: str = data["default_start"]
         self._current_destination: Optional[str] = None
+        self._destination_name: str = ""
+        self._route_steps: list[str] = []
+        self._step_index: int = 0
 
     def update_position(self, node: str):
         self.current_position = node
+
+    def current_step(self) -> Optional[str]:
+        """Returns the current step instruction, or None if no active route."""
+        if not self._route_steps or self._step_index >= len(self._route_steps):
+            return None
+        return self._route_steps[self._step_index].capitalize() + "."
+
+    def advance_step(self) -> str:
+        """Move to the next step. Returns the next instruction or an arrival message."""
+        if not self._route_steps:
+            return "No active navigation. Tell me where you'd like to go."
+        self._step_index += 1
+        if self._step_index >= len(self._route_steps):
+            dest = self._destination_name
+            self._route_steps = []
+            self._step_index = 0
+            self._current_destination = None
+            self._destination_name = ""
+            return f"You have arrived at the {dest}."
+        remaining = len(self._route_steps) - self._step_index
+        step_label = f"{remaining} step{'s' if remaining > 1 else ''} remaining."
+        return f"{self._route_steps[self._step_index].capitalize()}. {step_label}"
 
     def handle(self, text: str) -> Optional[str]:
         """
@@ -173,14 +199,27 @@ class Navigator:
                 return f"You are heading to the {self._current_destination.replace('_', ' ')}."
             return "You haven't set a destination yet."
 
+        if any(cue in t for cue in NEXT_CUES):
+            return self.advance_step()
+
         if any(cue in t for cue in STOP_CUES):
             self._current_destination = None
+            self._route_steps = []
+            self._step_index = 0
+            self._destination_name = ""
             return "Navigation stopped. Just let me know when you're ready to go somewhere."
 
         intent = extract_intent(text, self._locations_sorted)
 
         if intent["current"]:
             self.current_position = intent["current"]
+            if self._current_destination and self.current_position == self._current_destination:
+                dest = self._destination_name
+                self._current_destination = None
+                self._route_steps = []
+                self._step_index = 0
+                self._destination_name = ""
+                return f"You've arrived at the {dest}."
 
         if intent["destination"]:
             return self.get_instructions(intent["destination"])
@@ -202,10 +241,15 @@ class Navigator:
         if path is None:
             return f"Sorry, I couldn't find a route to the {dest_name}."
 
+        self._route_steps = [self._graph[path[i]][path[i + 1]] for i in range(len(path) - 1)]
+        self._step_index = 0
         self._current_destination = destination
-        steps = [self._graph[path[i]][path[i + 1]] for i in range(len(path) - 1)]
-        directions = ". ".join(step.capitalize() for step in steps) + "."
-        return f"You are currently in the {current_name}, navigating to the {dest_name}. {directions}"
+        self._destination_name = dest_name
+
+        total = len(self._route_steps)
+        first = self._route_steps[0].capitalize() + "."
+        step_label = f"{total} step{'s' if total > 1 else ''} total." if total > 1 else ""
+        return f"You are currently in the {current_name}, navigating to the {dest_name}. {step_label} {first}".strip()
 
 
 # ----- QUICK TEST -----
