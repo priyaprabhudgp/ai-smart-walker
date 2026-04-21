@@ -59,6 +59,12 @@ class ObjectDetector:
             print(f"[ObjectDetector] Loading stairs model: {stairs_model_path}")
             self.stairs_model = YOLO(stairs_model_path)
 
+        door_model_path = os.path.join(os.path.dirname(__file__), "door.pt")
+        self.door_model = None
+        if os.path.exists(door_model_path):
+            print(f"[ObjectDetector] Loading door classifier: {door_model_path}")
+            self.door_model = YOLO(door_model_path)
+
         print("[ObjectDetector] Ready.")
 
     def detect(self, frame) -> list[Detection]:
@@ -115,6 +121,22 @@ class ObjectDetector:
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image not found: {image_path}")
         return self.detect(image_path)
+
+    def classify_door(self, frame: np.ndarray) -> Optional[str]:
+        """
+        Classifies the door state from the center third of the frame.
+        Returns "Open", "Closed", "Semi", or None if no door model loaded.
+        """
+        if self.door_model is None:
+            return None
+        w = frame.shape[1]
+        x1, x2 = w // 3, 2 * w // 3
+        crop = frame[:, x1:x2]
+        results = self.door_model(crop, verbose=False, device=self.device)
+        top = results[0].probs.top1
+        label = results[0].names[top]
+        conf = float(results[0].probs.top1conf)
+        return label if conf >= 0.6 else None
 
     def annotate(self, frame: np.ndarray, detections: list[Detection]) -> np.ndarray:
         """
