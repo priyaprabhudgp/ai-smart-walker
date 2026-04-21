@@ -31,7 +31,7 @@ ai-smart-walker/
 │   └── door.pt                  # custom door classifier (Open / Closed / Semi)
 ├── maps/
 │   ├── layout1.json             # house map for Layout 1
-│   └── raw diagrams/
+│   └── rawdiagrams/
 │       └── layout1.pdf          # hand-drawn floor plan for Layout 1
 ├── requirements.txt             # Windows dev dependencies
 └── requirements-pi.txt          # Raspberry Pi deployment dependencies
