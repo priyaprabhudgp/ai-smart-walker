@@ -10,7 +10,7 @@
       "front_door":  { "instruction": "walk to the front door" },
       "hallway":     { "instruction": "turn left into the hallway" },
       "kitchen":     { "instruction": "turn right through the kitchen door" },
-      "backyard":    { "instruction": "walk forward through the backyard door" }
+      "backyard":    { "instruction": "continue straight through the backyard door" }
     },
     "hallway": {
       "living_room":     { "instruction": "walk to the end of the hallway and go through the door into the living room" },
