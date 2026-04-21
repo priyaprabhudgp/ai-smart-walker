@@ -14,6 +14,7 @@ Maps are loaded from JSON files in the maps/ directory.
 
 import json
 import os
+import threading
 from collections import deque
 from typing import Optional
 
@@ -55,7 +56,7 @@ POSITION_CUES = [
 
 WHERE_AM_I_CUES   = ["where am i", "where are we", "whats my location", "what's my location", "my location"]
 WHERE_GOING_CUES  = ["where am i going", "where are we going", "whats my destination", "what's my destination", "where to"]
-STOP_CUES         = ["stop navigation", "cancel navigation", "stop", "cancel", "never mind", "forget it"]
+STOP_CUES         = ["cancel navigation", "cancel", "never mind", "forget it"]
 NEXT_CUES         = ["next", "continue", "what's next", "whats next", "next step", "keep going", "and then", "go on"]
 
 
@@ -158,6 +159,7 @@ class Navigator:
         self._destination_name: str = ""
         self._route_steps: list[str] = []
         self._step_index: int = 0
+        self._step_lock = threading.Lock()
 
     def update_position(self, node: str):
         self.current_position = node
@@ -170,19 +172,22 @@ class Navigator:
 
     def advance_step(self) -> str:
         """Move to the next step. Returns the next instruction or an arrival message."""
-        if not self._route_steps:
-            return "No active navigation. Tell me where you'd like to go."
-        self._step_index += 1
-        if self._step_index >= len(self._route_steps):
-            dest = self._destination_name
-            self._route_steps = []
-            self._step_index = 0
-            self._current_destination = None
-            self._destination_name = ""
-            return f"You have arrived at the {dest}."
-        remaining = len(self._route_steps) - self._step_index
-        step_label = f"{remaining} step{'s' if remaining > 1 else ''} remaining."
-        return f"{self._route_steps[self._step_index].capitalize()}. {step_label}"
+        with self._step_lock:
+            if not self._route_steps:
+                return "No active navigation. Tell me where you'd like to go."
+            self._step_index += 1
+            if self._step_index >= len(self._route_steps):
+                dest_node = self._current_destination
+                dest_name = self._destination_name
+                self._route_steps = []
+                self._step_index = 0
+                self._current_destination = None
+                self._destination_name = ""
+                self.current_position = dest_node
+                return f"You have arrived at the {dest_name}."
+            remaining = len(self._route_steps) - self._step_index
+            step_label = f"{remaining} step{'s' if remaining > 1 else ''} remaining."
+            return f"{self._route_steps[self._step_index].capitalize()}. {step_label}"
 
     def handle(self, text: str) -> Optional[str]:
         """

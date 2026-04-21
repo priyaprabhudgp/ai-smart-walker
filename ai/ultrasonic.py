@@ -87,6 +87,7 @@ class UltrasonicArray:
         GPIO.output(trig, False)
 
         # Wait for echo to go high (sound leaves sensor)
+        pulse_start = time.time()
         start = time.time()
         while GPIO.input(echo) == 0:
             if time.time() - start > TIMEOUT:
@@ -94,13 +95,14 @@ class UltrasonicArray:
             pulse_start = time.time()
 
         # Wait for echo to go low (sound comes back)
+        pulse_end = time.time()
         start = time.time()
         while GPIO.input(echo) == 1:
             if time.time() - start > TIMEOUT:
                 return None
             pulse_end = time.time()
 
-        distance_cm = (pulse_end - pulse_start) * SPEED_OF_SOUND #17150
+        distance_cm = (pulse_end - pulse_start) * SPEED_OF_SOUND
         distance_m  = round(distance_cm / 100, 2)
 
         # Sanity check:  HC-SR04 range is 2cm to 400cm

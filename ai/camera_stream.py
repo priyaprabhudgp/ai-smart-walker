@@ -143,7 +143,7 @@ def run(use_llm: bool = True):
                     if door_state == "Open":
                         next_instruction = navigator.advance_step()
                         generator.set_navigating(navigator._current_destination is not None)
-                        speak(next_instruction)
+                        speak(DOOR_MESSAGES["Open"] + " " + next_instruction)
                     else:
                         msg = DOOR_MESSAGES.get(door_state)
                         if msg:
