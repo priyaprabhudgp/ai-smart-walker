@@ -173,15 +173,19 @@ class Navigator:
         return None
 
     def get_instructions(self, destination: str) -> str:
+        current_name = self.current_position.replace("_", " ")
+        dest_name    = destination.replace("_", " ")
+
         if destination == self.current_position:
-            return f"You are already at the {destination.replace('_', ' ')}."
+            return f"You are already at the {dest_name}."
 
         path = _bfs(self.current_position, destination, self._graph)
         if path is None:
-            return f"Sorry, I couldn't find a route to the {destination.replace('_', ' ')}."
+            return f"Sorry, I couldn't find a route to the {dest_name}."
 
         steps = [self._graph[path[i]][path[i + 1]] for i in range(len(path) - 1)]
-        return ". ".join(step.capitalize() for step in steps) + "."
+        directions = ". ".join(step.capitalize() for step in steps) + "."
+        return f"You are currently in the {current_name}, navigating to the {dest_name}. {directions}"
 
 
 # ----- QUICK TEST -----

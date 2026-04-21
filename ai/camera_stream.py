@@ -43,6 +43,13 @@ from voice_input import listen
 FRAME_WIDTH  = 640          # capture resolution width
 FRAME_HEIGHT = 480          # capture resolution height
 LOOP_INTERVAL = 0.5         # seconds between pipeline runs (2 fps processing)
+DOOR_COOLDOWN = 8.0         # seconds between repeated door announcements
+
+DOOR_MESSAGES = {
+    "Open": "The door ahead is open, go through.",
+    "Semi": "The door ahead is partially open, push it open to continue.",
+    "Closed": "The door ahead is closed, please open it to continue.",
+}
 
 
 # ----- CAMERA SETUP -----
@@ -89,6 +96,7 @@ def run(use_llm: bool = True):
 
     # ----- VOICE + NAVIGATION THREAD -----
     def voice_thread():
+        speak("Hello! Before we get started, please tell me where you are right now.")
         while True:
             text = listen()
             if not text:
@@ -106,6 +114,7 @@ def run(use_llm: bool = True):
     threading.Thread(target=voice_thread, daemon=True).start()
 
     # ----- DETECTION LOOP (main thread) -----
+    last_door_spoken = 0.0
     try:
         while True:
             loop_start = time.monotonic()
@@ -119,10 +128,19 @@ def run(use_llm: bool = True):
             detections = detector.detect(frame_bgr)
             assign_distances(detections, distances, FRAME_WIDTH)
 
-            # 3. Interpret scene
+            # 3. Door classification (only announce during active navigation)
+            if generator.is_navigating:
+                door_state = detector.classify_door(frame_bgr)
+                if door_state and (time.monotonic() - last_door_spoken) >= DOOR_COOLDOWN:
+                    msg = DOOR_MESSAGES.get(door_state)
+                    if msg:
+                        last_door_spoken = time.monotonic()
+                        speak(msg)
+
+            # 4. Interpret scene
             scene = interpreter.interpret(detections)
 
-            # 4. Generate alert (respects audio priority vs navigation)
+            # 5. Generate alert (respects audio priority vs navigation)
             alert = generator.generate(scene)
             if alert:
                 speak(alert)
