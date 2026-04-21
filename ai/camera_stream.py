@@ -19,6 +19,7 @@ import time
 import argparse
 import sys
 import os
+import threading
 import pyttsx3
 
 # Guard: fail early with a clear message if not on Pi
@@ -29,10 +30,12 @@ except ImportError:
     print("                Use pipeline_test.py for testing on your dev machine.")
     sys.exit(1)
 
-from object_detection import ObjectDetector
+from object_detection import ObjectDetector, assign_distances
 from scene_interpretation import SceneInterpreter
 from language_generation import LanguageGenerator
 from ultrasonic import UltrasonicArray
+from navigation import Navigator
+from voice_input import listen
 
 
 # ----- CONFIG -----
@@ -62,57 +65,68 @@ def init_camera() -> Picamera2:
 def run(use_llm: bool = True):
     print("[camera_stream] Starting pipeline. Press Ctrl+C to stop.\n")
 
-    tts = pyttsx3.init()
-    tts.setProperty("rate", 150)  # slightly slower than default, easier to understand
+    tts      = pyttsx3.init()
+    tts.setProperty("rate", 150)
+    tts_lock = threading.Lock()
 
-    cam        = init_camera()
-    sensors    = UltrasonicArray()
-    detector   = ObjectDetector(stairs_model_path="best.pt", device="cpu")
+    def speak(text: str):
+        print(f"[SPEAK] {text}")
+        with tts_lock:
+            tts.say(text)
+            tts.runAndWait()
+
+    cam         = init_camera()
+    sensors     = UltrasonicArray()
+    detector    = ObjectDetector(stairs_model_path="best.pt", device="cpu")
     interpreter = SceneInterpreter(frame_width=FRAME_WIDTH)
-    generator  = LanguageGenerator(
+    generator   = LanguageGenerator(
         cooldown_seconds=4.0,
         speak_clear_path=True,
         clear_path_cooldown=10.0,
         use_llm=use_llm,
     )
+    navigator = Navigator()
 
+    # ----- VOICE + NAVIGATION THREAD -----
+    def voice_thread():
+        while True:
+            text = listen()
+            if not text:
+                continue
+
+            result = navigator.handle(text)
+            if result:
+                generator.set_navigating(True)
+                speak(result)
+                generator.set_navigating(False)
+                queued = generator.pop_queued_alert()
+                if queued:
+                    speak(queued)
+
+    threading.Thread(target=voice_thread, daemon=True).start()
+
+    # ----- DETECTION LOOP (main thread) -----
     try:
         while True:
             loop_start = time.monotonic()
 
-            # 1. Capture frame (RGB numpy array from picamera2)
+            # 1. Capture frame
             frame_rgb = cam.capture_array()
-
-            # picamera2 gives RGB --> convert to BGR for YOLO/cv2 compatibility
             frame_bgr = frame_rgb[:, :, ::-1]
 
-            # 2. Read ultrasonic distances
-            distances = sensors.read_all()
-            # distances = {"left": 0.42, "right": 1.1, "front": None, "down": None}
-
-            # 3. Detect objects
+            # 2. Sensor distances + object detection
+            distances  = sensors.read_all()
             detections = detector.detect(frame_bgr)
+            assign_distances(detections, distances, FRAME_WIDTH)
 
-            # Assign distance to each detection based on its horizontal position
-            # detected objs gets their distance based on sensor zone
-            # feeds into interpretation and urgency is set based on obj dist
-            for d in detections:
-                position = interpreter._horizontal_position(d.bbox)
-                d.distance_m = distances.get(position)
-
-            # 4. Interpret scene
+            # 3. Interpret scene
             scene = interpreter.interpret(detections)
 
-            # 5. Generate alert
+            # 4. Generate alert (respects audio priority vs navigation)
             alert = generator.generate(scene)
-
-            # 6. Speak alert through speaker (text to speech)
             if alert:
-                print(f"[ALERT] {alert}")
-                tts.say(alert)
-                tts.runAndWait()
+                speak(alert)
 
-            # Throttle loop to LOOP_INTERVAL
             elapsed = time.monotonic() - loop_start
             sleep_time = LOOP_INTERVAL - elapsed
             if sleep_time > 0:

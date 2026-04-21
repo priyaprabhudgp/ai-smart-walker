@@ -133,6 +133,11 @@ class LanguageGenerator:
     Uses Claude API for natural companion-style responses,
     falls back to templates silently if LLM is too slow or unavailable.
 
+    Audio priority when navigating:
+        critical / high  → interrupt immediately
+        medium           → queued, spoken after current nav instruction finishes
+        low              → suppressed entirely
+
     Args:
         cooldown_seconds:    Min seconds before repeating the same alert.
         speak_clear_path:    Whether to announce when the path is clear.
@@ -153,23 +158,49 @@ class LanguageGenerator:
         self.clear_cooldown    = AlertCooldown(clear_path_cooldown)
         self.use_llm           = use_llm
         self.llm_timeout       = llm_timeout
+        self.is_navigating     = False
+        self._queued_alert: Optional[str] = None
+
+    def set_navigating(self, active: bool):
+        """Call with True when a nav route starts, False when it ends."""
+        self.is_navigating = active
+        if not active:
+            self._queued_alert = None
+
+    def pop_queued_alert(self) -> Optional[str]:
+        """Returns and clears any queued medium-urgency alert. Call after each nav instruction."""
+        alert = self._queued_alert
+        self._queued_alert = None
+        return alert
 
     def generate(self, scene: SceneSummary, user_input: str = "") -> Optional[str]:
         if scene.is_clear:
-            if self.clear_cooldown.should_speak("clear"):
+            if not self.is_navigating and self.clear_cooldown.should_speak("clear"):
                 return CLEAR_PATH_MESSAGE
             return None
 
         if not self.obstacle_cooldown.should_speak("scene"):
             return None
 
+        urgency = scene.top_obstacle.urgency if scene.top_obstacle else "low"
+
+        if self.is_navigating:
+            if urgency == "low":
+                return None
+            alert = self._build_alert(scene, user_input)
+            if urgency == "medium":
+                self._queued_alert = alert
+                return None
+            # critical or high: return immediately to interrupt
+            return alert
+
+        return self._build_alert(scene, user_input)
+
+    def _build_alert(self, scene: SceneSummary, user_input: str = "") -> Optional[str]:
         if self.use_llm:
             llm_result = _call_llm(self._build_prompt(scene, user_input), self.llm_timeout)
             if llm_result:
-                #print("[DEBUG] Used LLM")   
                 return llm_result
-
-        #print("[DEBUG] Used template")     
         alerts = []
         for obs in scene.obstacles:
             alerts.append(self._render_template(obs))
