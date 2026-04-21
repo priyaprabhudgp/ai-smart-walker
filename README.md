@@ -88,7 +88,7 @@ ai-smart-walker/
 ## Dev Setup (Windows)
 
 ```cmd
-cd C:\Users\<user>\VScode\ai-smart-walker
+cd C:\Users\<user>\ai-smart-walker
 python -m venv venv
 venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
@@ -112,10 +112,10 @@ python navigation.py
 
 **1. Copy files to Pi (from Windows):**
 ```cmd
-scp -r "C:\Users\<user>\VScode\ai-smart-walker\ai" pipriya@<ip>:~/ai-smart-walker/
-scp -r "C:\Users\<user>\VScode\ai-smart-walker\maps" pipriya@<ip>:~/ai-smart-walker/
-scp "C:\Users\<user>\VScode\ai-smart-walker\requirements-pi.txt" pipriya@<ip>:~/ai-smart-walker/
-scp "C:\Users\<user>\VScode\ai-smart-walker\.env" pipriya@<ip>:~/ai-smart-walker/
+scp -r "C:\Users\<user>\ai-smart-walker\ai" pipriya@<ip>:~/ai-smart-walker/
+scp -r "C:\Users\<user>\ai-smart-walker\maps" pipriya@<ip>:~/ai-smart-walker/
+scp "C:\Users\<user>\ai-smart-walker\requirements-pi.txt" pipriya@<ip>:~/ai-smart-walker/
+scp "C:\Users\<user>\ai-smart-walker\.env" pipriya@<ip>:~/ai-smart-walker/
 ```
 
 **2. SSH into Pi:**
@@ -151,8 +151,8 @@ Press `Ctrl+C` to stop.
 ### Pushing updates to Pi (from Windows)
 
 ```cmd
-scp -r "C:\Users\<user>\VScode\ai-smart-walker\ai" pipriya@<ip>:~/ai-smart-walker/
-scp -r "C:\Users\<user>\VScode\ai-smart-walker\maps" pipriya@<ip>:~/ai-smart-walker/
+scp -r "C:\Users\<user>\ai-smart-walker\ai" pipriya@<ip>:~/ai-smart-walker/
+scp -r "C:\Users\<user>\ai-smart-walker\maps" pipriya@<ip>:~/ai-smart-walker/
 ```
 
 ---
@@ -216,21 +216,6 @@ Save the file as `maps/layoutN.json` and copy the floor plan PDF to `maps/raw di
 
 ---
 
-## Hardware Checklist
-
-- [ ] Camera Module 3 ribbon cable connected
-- [ ] USB speaker plugged in
-- [ ] USB microphone plugged in
-- [x] Left ultrasonic sensor wired (TRIG=23, ECHO=24)
-- [x] Right ultrasonic sensor wired (TRIG=17, ECHO=27)
-- [ ] Front ultrasonic sensor wired (TRIG=5, ECHO=6)
-- [ ] Down ultrasonic sensor wired (TRIG=13, ECHO=19)
-- [ ] Pi connected to WiFi
-- [ ] `.env` present with `GEMINI_API_KEY`
-- [ ] `best.pt` (stairs model) in `ai/`
-- [ ] `door.pt` (door classifier) in `ai/`
-
----
 
 ## Custom Model Training — Doors
 
