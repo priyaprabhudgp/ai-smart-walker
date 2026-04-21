@@ -55,7 +55,7 @@ ai-smart-walker/
 - On boot, asks: *"Where are you right now?"*
 - User declares position and destination by voice
 - Instructions are given **one step at a time**
-- Next step triggers automatically when an open door is detected, or on voice command
+- Next step triggers on voice command
 - Announces arrival and updates position automatically
 
 ### Door Classification
