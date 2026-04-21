@@ -6,98 +6,39 @@ Keyword-based intent extraction and BFS navigation for a pre-mapped home layout.
 Flow:
     speech text → extract_intent() → Navigator.get_instructions() → spoken directions
 
-Position is user-declared, not sensor-tracked. Defaults to front_door on boot.
+Position is user-declared, not sensor-tracked. Defaults to the map's default_start on boot.
 User can re-declare position mid-session: "I'm in the kitchen, take me to the bedroom"
+
+Maps are loaded from JSON files in the maps/ directory.
 """
 
+import json
+import os
 from collections import deque
 from typing import Optional
 
 
-# ----- MAP -----
-# node → {neighbor: walking instruction to get there}
-# THIS IS BASED ON LAYOUT1 (view in testhouselayouts)
+# ----- MAP LOADER -----
 
-MAP: dict[str, dict[str, str]] = {
-    "front_door": {
-        "living_room": "walk forward",
-    },
-    "living_room": {
-        "front_door":  "walk to the front door",
-        "hallway":     "turn left into the hallway",
-        "kitchen":     "turn right through the kitchen door",
-        "backyard":    "walk forward through the backyard door",
-    },
-    "hallway": {
-        "living_room":     "walk to the end of the hallway and go through the door into the living room",
-        "bobs_room":       "turn right through the first door into Bob's room",
-        "steves_room":     "turn right through the second door into Steve's room",
-        "bathroom":        "walk straight to the end of the hallway through the bathroom door",
-        "master_bathroom": "turn left through the door into the master bathroom",
-        "master_bedroom":  "walk to the end of the hallway and turn left into the master bedroom",
-    },
-    "kitchen": {
-        "living_room":  "go through the door into the living room",
-        "laundry_room": "turn right, walk forward, and turn left through the laundry room door",
-    },
-    "laundry_room": {
-        "kitchen":  "go through the door into the kitchen",
-        "garage":   "turn right and walk forward into the garage",
-        "backyard": "go through the door to the backyard",
-    },
-    "garage": {
-        "laundry_room": "go through the door into the laundry room",
-    },
-    "backyard": {
-        "living_room":  "go through the door into the living room",
-        "laundry_room": "go through the door into the laundry room",
-    },
-    "bobs_room": {
-        "hallway": "go out through the door to the hallway",
-    },
-    "steves_room": {
-        "hallway": "go out through the door to the hallway",
-    },
-    "bathroom": {
-        "hallway": "go out through the door to the hallway",
-    },
-    "master_bathroom": {
-        "hallway":        "go through the door to the hallway",
-        "master_bedroom": "go through the door into the master bedroom",
-    },
-    "master_bedroom": {
-        "hallway":         "go through the door to the hallway",
-        "master_bathroom": "go through the door into the master bathroom",
-    },
-}
+def load_map(map_file: str) -> dict:
+    """Load a house map from a JSON file. Returns the full map data dict."""
+    with open(map_file, "r") as f:
+        return json.load(f)
 
 
-# ----- KEYWORD TABLES -----
-# Longest phrases first so "master bathroom" matches before "bathroom"
+def _build_locations_sorted(locations: dict[str, str]) -> list[tuple[str, str]]:
+    """Sort location keyword table longest-first to prevent short phrases shadowing long ones."""
+    return sorted(locations.items(), key=lambda x: -len(x[0]))
 
-LOCATIONS: dict[str, str] = {
-    "front door":      "front_door",
-    "hallway":         "hallway",
-    "living room":     "living_room",
-    "kitchen":         "kitchen",
-    "laundry room":    "laundry_room",
-    "laundry":         "laundry_room",
-    "garage":          "garage",
-    "bob's room":      "bobs_room",
-    "bobs room":       "bobs_room",
-    "bob's":           "bobs_room",
-    "steve's room":    "steves_room",
-    "steves room":     "steves_room",
-    "steve's":         "steves_room",
-    "master bathroom": "master_bathroom",
-    "master bedroom":  "master_bedroom",
-    "bathroom":        "bathroom",
-    "bedroom":         "master_bedroom",
-    "back yard":       "backyard",
-    "backyard":        "backyard",
-}
 
-_LOCATIONS_SORTED = sorted(LOCATIONS.items(), key=lambda x: -len(x[0]))
+# ----- DEFAULT MAP -----
+
+_DEFAULT_MAP_FILE = os.path.join(
+    os.path.dirname(__file__), "..", "maps", "layout1.json"
+)
+
+
+# ----- INTENT EXTRACTION -----
 
 DESTINATION_CUES = [
     "take me to", "guide me to", "navigate to",
@@ -113,16 +54,17 @@ POSITION_CUES = [
 ]
 
 
-# ----- INTENT EXTRACTION -----
-
-def _find_location(text: str) -> Optional[str]:
-    for phrase, node in _LOCATIONS_SORTED:
+def _find_location(text: str, locations_sorted: list[tuple[str, str]]) -> Optional[str]:
+    for phrase, node in locations_sorted:
         if phrase in text:
             return node
     return None
 
 
-def extract_intent(text: str) -> dict[str, Optional[str]]:
+def extract_intent(
+    text: str,
+    locations_sorted: list[tuple[str, str]],
+) -> dict[str, Optional[str]]:
     """
     Parse raw speech into current position and/or destination.
 
@@ -137,7 +79,7 @@ def extract_intent(text: str) -> dict[str, Optional[str]]:
             → {"current": "living_room", "destination": "bathroom"}
 
         "i'm at the hallway"
-            → {"current": "main_hallway", "destination": None}
+            → {"current": "hallway", "destination": None}
     """
     text = text.lower()
     current = None
@@ -160,25 +102,25 @@ def extract_intent(text: str) -> dict[str, Optional[str]]:
     if pos_idx != -1:
         pos_start = pos_idx + pos_cue_len
         pos_end = dest_idx if dest_idx > pos_idx else len(text)
-        current = _find_location(text[pos_start:pos_end])
+        current = _find_location(text[pos_start:pos_end], locations_sorted)
 
     if dest_idx != -1:
-        destination = _find_location(text[dest_idx + dest_cue_len:])
+        destination = _find_location(text[dest_idx + dest_cue_len:], locations_sorted)
 
     return {"current": current, "destination": destination}
 
 
 # ----- PATHFINDING -----
 
-def _bfs(start: str, end: str) -> Optional[list[str]]:
-    """BFS over MAP. Returns ordered list of node IDs, or None if unreachable."""
+def _bfs(start: str, end: str, graph: dict) -> Optional[list[str]]:
+    """BFS over graph. Returns ordered list of node IDs, or None if unreachable."""
     if start == end:
         return [start]
     queue: deque[list[str]] = deque([[start]])
     visited = {start}
     while queue:
         path = queue.popleft()
-        for neighbor in MAP.get(path[-1], {}):
+        for neighbor in graph.get(path[-1], {}):
             if neighbor == end:
                 return path + [neighbor]
             if neighbor not in visited:
@@ -191,12 +133,22 @@ def _bfs(start: str, end: str) -> Optional[list[str]]:
 
 class Navigator:
     """
-    Tracks user's declared position and generates turn-by-turn spoken instructions.
-    Position defaults to front_door on boot and updates whenever the user declares it.
+    Loads a house map from a JSON file and generates turn-by-turn spoken instructions.
+    Position defaults to the map's default_start on boot and updates whenever
+    the user declares their location.
+
+    Args:
+        map_file: Path to a map JSON file. Defaults to maps/layout1.json.
     """
 
-    def __init__(self, start: str = "front_door"):
-        self.current_position = start
+    def __init__(self, map_file: str = _DEFAULT_MAP_FILE):
+        data = load_map(map_file)
+        self._graph: dict[str, dict[str, str]] = {
+            node: {neighbor: edge["instruction"] for neighbor, edge in edges.items()}
+            for node, edges in data["nodes"].items()
+        }
+        self._locations_sorted = _build_locations_sorted(data["locations"])
+        self.current_position: str = data["default_start"]
 
     def update_position(self, node: str):
         self.current_position = node
@@ -206,7 +158,7 @@ class Navigator:
         Main entry point. Takes raw speech, updates position if declared,
         and returns spoken instructions if a destination was given.
         """
-        intent = extract_intent(text)
+        intent = extract_intent(text, self._locations_sorted)
 
         if intent["current"]:
             self.current_position = intent["current"]
@@ -224,11 +176,11 @@ class Navigator:
         if destination == self.current_position:
             return f"You are already at the {destination.replace('_', ' ')}."
 
-        path = _bfs(self.current_position, destination)
+        path = _bfs(self.current_position, destination, self._graph)
         if path is None:
             return f"Sorry, I couldn't find a route to the {destination.replace('_', ' ')}."
 
-        steps = [MAP[path[i]][path[i + 1]] for i in range(len(path) - 1)]
+        steps = [self._graph[path[i]][path[i + 1]] for i in range(len(path) - 1)]
         return ". ".join(step.capitalize() for step in steps) + "."
 
 
@@ -238,7 +190,6 @@ if __name__ == "__main__":
     nav = Navigator()
 
     tests = [
-        # from front door
         "take me to the master bedroom",
         "take me to the bathroom",
         "take me to the kitchen",
@@ -248,7 +199,6 @@ if __name__ == "__main__":
         "take me to the garage",
         "take me to the backyard",
         "take me to the laundry room",
-        # mid-session position updates
         "i'm in the kitchen, take me to the bathroom",
         "i'm in the kitchen, take me to the master bedroom",
         "i'm in steve's room, take me to the living room",
@@ -258,7 +208,6 @@ if __name__ == "__main__":
         "i'm in the backyard, take me to the master bedroom",
         "i'm in the bathroom, take me to the garage",
         "i'm in the master bathroom, take me to bob's room",
-        # already there
         "i'm in the kitchen, take me to the kitchen",
     ]
 

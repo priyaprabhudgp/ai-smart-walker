@@ -1,0 +1,78 @@
+{
+  "name": "Layout 1",
+  "pdf": "testhouselayouts/layout1.pdf",
+  "default_start": "front_door",
+  "nodes": {
+    "front_door": {
+      "living_room": { "instruction": "walk forward" }
+    },
+    "living_room": {
+      "front_door":  { "instruction": "walk to the front door" },
+      "hallway":     { "instruction": "turn left into the hallway" },
+      "kitchen":     { "instruction": "turn right through the kitchen door" },
+      "backyard":    { "instruction": "walk forward through the backyard door" }
+    },
+    "hallway": {
+      "living_room":     { "instruction": "walk to the end of the hallway and go through the door into the living room" },
+      "bobs_room":       { "instruction": "turn right through the first door into Bob's room" },
+      "steves_room":     { "instruction": "turn right through the second door into Steve's room" },
+      "bathroom":        { "instruction": "walk straight to the end of the hallway through the bathroom door" },
+      "master_bathroom": { "instruction": "turn left through the door into the master bathroom" },
+      "master_bedroom":  { "instruction": "walk to the end of the hallway and turn left into the master bedroom" }
+    },
+    "kitchen": {
+      "living_room":  { "instruction": "go through the door into the living room" },
+      "laundry_room": { "instruction": "turn right, walk forward, and turn left through the laundry room door" }
+    },
+    "laundry_room": {
+      "kitchen":  { "instruction": "go through the door into the kitchen" },
+      "garage":   { "instruction": "turn right and walk forward into the garage" },
+      "backyard": { "instruction": "go through the door to the backyard" }
+    },
+    "garage": {
+      "laundry_room": { "instruction": "go through the door into the laundry room" }
+    },
+    "backyard": {
+      "living_room":  { "instruction": "go through the door into the living room" },
+      "laundry_room": { "instruction": "go through the door into the laundry room" }
+    },
+    "bobs_room": {
+      "hallway": { "instruction": "go out through the door to the hallway" }
+    },
+    "steves_room": {
+      "hallway": { "instruction": "go out through the door to the hallway" }
+    },
+    "bathroom": {
+      "hallway": { "instruction": "go out through the door to the hallway" }
+    },
+    "master_bathroom": {
+      "hallway":        { "instruction": "go through the door to the hallway" },
+      "master_bedroom": { "instruction": "go through the door into the master bedroom" }
+    },
+    "master_bedroom": {
+      "hallway":         { "instruction": "go through the door to the hallway" },
+      "master_bathroom": { "instruction": "go through the door into the master bathroom" }
+    }
+  },
+  "locations": {
+    "front door":      "front_door",
+    "hallway":         "hallway",
+    "living room":     "living_room",
+    "kitchen":         "kitchen",
+    "laundry room":    "laundry_room",
+    "laundry":         "laundry_room",
+    "garage":          "garage",
+    "bob's room":      "bobs_room",
+    "bobs room":       "bobs_room",
+    "bob's":           "bobs_room",
+    "steve's room":    "steves_room",
+    "steves room":     "steves_room",
+    "steve's":         "steves_room",
+    "master bathroom": "master_bathroom",
+    "master bedroom":  "master_bedroom",
+    "bathroom":        "bathroom",
+    "bedroom":         "master_bedroom",
+    "back yard":       "backyard",
+    "backyard":        "backyard"
+  }
+}
