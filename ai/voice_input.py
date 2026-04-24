@@ -31,16 +31,16 @@ def listen() -> str:
     """
     rec = KaldiRecognizer(_get_model(), 16000)
     p = pyaudio.PyAudio()
-    stream = p.open(
-        format=pyaudio.paInt16,
-        channels=1,
-        rate=16000,
-        input=True,
-        frames_per_buffer=8000,
-    )
-    stream.start_stream()
-
+    stream = None
     try:
+        stream = p.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=16000,
+            input=True,
+            frames_per_buffer=8000,
+        )
+        stream.start_stream()
         while True:
             data = stream.read(4000, exception_on_overflow=False)
             if rec.AcceptWaveform(data):
@@ -50,6 +50,7 @@ def listen() -> str:
                     print(f"[voice_input] Heard: {text}")
                     return text
     finally:
-        stream.stop_stream()
-        stream.close()
+        if stream is not None:
+            stream.stop_stream()
+            stream.close()
         p.terminate()
