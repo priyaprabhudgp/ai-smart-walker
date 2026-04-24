@@ -10,6 +10,8 @@ Install deps first:
 """
 
 from ultralytics import YOLO
+from ultralytics import settings
+settings.update({"sync": False}) #disable network calls
 import cv2
 import numpy as np
 from dataclasses import dataclass

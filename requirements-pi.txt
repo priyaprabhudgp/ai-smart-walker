@@ -24,8 +24,9 @@ opencv-python-headless       # cv2 without display libs -- Pi OS has no opencv b
 # --- Text to speech ---
 pyttsx3                      # offline TTS via espeak; run: sudo apt install espeak
 
-# --- Gemini LLM ---
-google-generativeai==0.8.5   # Gemini 2.5-flash-lite API
+# --- Speech recognition (offline) ---
+vosk                         # offline STT; also download model (see README)
+pyaudio                      # microphone input; requires: sudo apt install portaudio19-dev
 
 # ============================================================
 # Already on your Pi -- DO NOT re-pin these:

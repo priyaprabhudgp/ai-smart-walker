@@ -1,6 +1,10 @@
 """
 ai/camera_stream.py
 
+
+THIS IS THE MAIN PIPELINE.
+
+
 Live camera loop for Raspberry Pi + Camera Module 3.
 Captures frames from picamera2, runs the full AI pipeline,
 and prints the spoken alert.
