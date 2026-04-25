@@ -26,7 +26,7 @@ import os
 import threading
 import pyttsx3
 
-# Guard: fail early with a clear message if not on Pi
+# fail early with a clear message if not on Pi
 try:
     from picamera2 import Picamera2
 except ImportError:
@@ -77,9 +77,9 @@ def init_camera() -> Picamera2:
 def run(use_llm: bool = True):
     print("[camera_stream] Starting pipeline. Press Ctrl+C to stop.\n")
 
-    tts      = pyttsx3.init()
+    tts = pyttsx3.init() # init tts 
     tts.setProperty("rate", 150)
-    tts_lock  = threading.Lock()
+    tts_lock = threading.Lock()
     last_spoken = [""]
 
     def speak(text: str):
@@ -89,11 +89,11 @@ def run(use_llm: bool = True):
             tts.say(text)
             tts.runAndWait()
 
-    cam         = init_camera()
-    sensors     = UltrasonicArray()
-    detector    = ObjectDetector(stairs_model_path="best.pt", device="cpu")
+    cam = init_camera() #init camera
+    sensors = UltrasonicArray()
+    detector = ObjectDetector(stairs_model_path="best.pt", device="cpu")
     interpreter = SceneInterpreter(frame_width=FRAME_WIDTH)
-    generator   = LanguageGenerator(
+    generator = LanguageGenerator(
         cooldown_seconds=4.0,
         speak_clear_path=True,
         clear_path_cooldown=10.0,
