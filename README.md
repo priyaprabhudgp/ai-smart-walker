@@ -224,3 +224,242 @@ Save the file as `maps/layoutN.json` and copy the floor plan PDF to `maps/raw di
 - `door.pt` = custom door classifier (YOLOv8n-cls, 3 classes: Open / Closed / Semi)
 - `yolov8n.pt` = base COCO model (persons, chairs, pets, etc. — no doors or stairs)
 - Voice recognition (`voice_input.py`) uses Google Speech API — requires internet on the Pi
+
+
+
+
+
+Default map layout:
+# # # # # # # # #
+. . . . . . . . .
+. K . . . . . B . #   K = kitchen  B = bedroom
+. . . . . . . . .
+. . . E . . . . . #   E = entrance (start)
+. . . . . . . . .
+. L . . . . O . . #   L = living room  O = office
+. . . . . . . . .
+. . . . . . . . D #   D = bathroom
+# # # # # # # # #
+
+To change the map, edit `maps/house_map.json`. To add a room, add a new number to the grid and a matching entry in the `legend` object.
+
+---
+
+## Obstacle Detection
+
+- Detects 80 object classes (people, chairs, pets, furniture, etc.) via YOLOv8n
+- Custom stairs model (`best.pt`) adds stair detection
+- Urgency is determined by ultrasonic sensor distance:
+
+| Distance | Urgency | Behaviour |
+|---|---|---|
+| ≤ 0.8m | Critical | Stop immediately |
+| ≤ 2.0m | High | Slow down warning |
+| ≤ 4.0m | Medium | Heads-up alert |
+| > 4.0m | Low | Suppressed during navigation |
+
+Alerts use the Gemini LLM for natural speech; falls back to pre-written templates if offline or slow.
+
+### Door Classification
+`door.pt` classifies the centre of the camera frame every cycle during navigation:
+- **Open** → tells the user to go through
+- **Closed / Semi** → warns the user to open the door first
+
+---
+
+## Voice Commands
+
+| Say... | What happens |
+|---|---|
+| *"Take me to the kitchen"* | Plans a route and speaks directions |
+| *"I'm in the kitchen"* | Updates your current position |
+| *"Next" / "Continue"* | Moves to the next navigation step |
+| *"Repeat that" / "Say that again"* | Replays the last spoken message |
+| *"Where am I?"* | States your current position |
+| *"Where am I going?"* | States your current destination |
+| *"Cancel navigation"* | Cancels the active route |
+| *"Stop" / "Goodbye"* | Ends the voice navigation session |
+
+---
+
+## Dev Setup (Mac / Windows)
+
+```bash
+cd ai-smart-walker
+python3 -m venv venv
+source venv/bin/activate          # Mac/Linux
+# venv\Scripts\activate           # Windows
+pip install -r requirements.txt
+```
+
+Test the obstacle detection pipeline on a static image:
+```bash
+cd ai
+python pipeline_test.py
+```
+
+Test voice navigation:
+```bash
+python -m voice_navigation.nav_voice_system
+```
+
+---
+
+## Raspberry Pi Deployment
+
+### 1. Clone the repo
+
+```bash
+cd ~
+git clone https://github.com/priyaprabhudgp/ai-smart-walker.git
+cd ai-smart-walker
+```
+
+### 2. Install system packages
+
+```bash
+sudo apt update
+sudo apt install espeak-ng python3-pyaudio python3-pip python3-venv -y
+```
+
+### 3. Set up a virtual environment
+
+```bash
+python3 -m venv --system-site-packages venv
+source venv/bin/activate
+```
+
+### 4. Install Python packages
+
+```bash
+pip install pyttsx3 vosk
+```
+
+For the full camera + detection pipeline:
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-pi.txt
+```
+
+### 5. Download the Vosk speech model
+
+```bash
+cd ~/ai-smart-walker
+wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
+unzip vosk-model-small-en-us-0.15.zip
+```
+
+### 6. Configure audio
+
+Find your USB mic card number:
+```bash
+arecord -l
+```
+
+Create `/etc/asound.conf` (replace `hw:3,0` with your actual mic card number):
+pcm.!default {
+type asym
+playback.pcm {
+type plug
+slave.pcm "hw:0,0"
+}
+capture.pcm {
+type plug
+slave.pcm "hw:3,0"
+}
+}
+ctl.!default {
+type hw
+card 0
+}
+
+Force audio output to the 3.5mm jack (not HDMI):
+```bash
+sudo raspi-config
+# → System Options → Audio → Headphones
+```
+
+### 7. Test hardware
+
+```bash
+# Test speaker
+speaker-test -t wav -c 1
+
+# Test microphone (speak for 3 seconds, then hear playback)
+arecord -D hw:3,0 -f cd -d 3 test.wav && aplay test.wav
+```
+
+### 8. Run
+
+**Voice navigation only (mic + map + speaker):**
+```bash
+cd ~/ai-smart-walker
+source venv/bin/activate
+python -m voice_navigation.nav_voice_system
+```
+
+**Full pipeline (camera + object detection + navigation):**
+```bash
+cd ~/ai-smart-walker/ai
+source ~/ai-smart-walker/venv/bin/activate
+python camera_stream.py
+
+# Offline mode (no Gemini API needed):
+python camera_stream.py --no-llm
+```
+
+Press `Ctrl+C` to stop.
+
+### 9. Pull updates from GitHub
+
+```bash
+cd ~/ai-smart-walker
+git pull origin main
+```
+
+---
+
+## Setting Up a New House Map
+
+### Step 1 — Draw the floor plan
+Sketch the house on paper or in a drawing tool. Mark every room, wall, and doorway. See `maps/rawdiagrams/layout1.pdf` as an example.
+
+### Step 2 — Generate the JSON with an LLM
+Feed the floor plan image to Claude or Gemini with this prompt:
+Here is a floor plan. Convert it into this JSON grid format:
+{
+"grid": [[0,0,...], ...],
+"legend": {
+"0": "blocked",
+"1": "walkable",
+"2": "kitchen",
+...
+}
+}
+Rules:
+
+0 = wall/outside, 1 = open walkable floor
+Each named room gets its own number (2, 3, 4...)
+The room's number appears once in the grid at that room's centre cell
+Every room must be reachable by walking through 1-cells
+
+
+### Step 3 — Save and test
+Save the file as `maps/house_map.json` and run:
+```bash
+python -m voice_navigation.nav_voice_system
+```
+
+### Step 4 — Update the start position
+Edit `DEFAULT_START_POSITION` in `voice_navigation/nav_voice_system.py` to match where the user will be standing when the system starts.
+
+---
+
+## Notes
+
+- `picamera2` is a Pi system package — do not pip install it
+- `best.pt` — custom stairs model (fine-tuned from yolov8n.pt)
+- `door.pt` — custom door classifier (YOLOv8n-cls, 3 classes: Open / Closed / Semi)
+- `yolov8n.pt` — base COCO model (persons, chairs, pets, etc.)
+- Voice recognition uses Vosk — fully offline, no internet required
+- The ALSA warnings printed at startup are harmless — PyAudio probes all audio drivers on init
