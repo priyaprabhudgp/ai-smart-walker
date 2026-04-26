@@ -130,6 +130,8 @@ def run(use_llm: bool = True):
 
     # ----- DETECTION LOOP (main thread) -----
     last_door_spoken = 0.0
+    door_consecutive = {"state": None, "count": 0}  # must see same state 3x in a row
+    DOOR_CONFIRM_FRAMES = 3
     try:
         while True:
             loop_start = time.monotonic()
@@ -146,8 +148,19 @@ def run(use_llm: bool = True):
             # 3. Door classification (only during active navigation)
             if generator.is_navigating:
                 door_state = detector.classify_door(frame_bgr)
-                if door_state and (time.monotonic() - last_door_spoken) >= DOOR_COOLDOWN:
+                if door_state == door_consecutive["state"]:
+                    door_consecutive["count"] += 1
+                else:
+                    door_consecutive["state"] = door_state
+                    door_consecutive["count"] = 1
+                confirmed = (
+                    door_state is not None
+                    and door_consecutive["count"] >= DOOR_CONFIRM_FRAMES
+                    and (time.monotonic() - last_door_spoken) >= DOOR_COOLDOWN
+                )
+                if confirmed:
                     last_door_spoken = time.monotonic()
+                    door_consecutive["count"] = 0
                     msg = DOOR_MESSAGES.get(door_state)
                     if msg:
                         speak(msg)
