@@ -138,7 +138,7 @@ class ObjectDetector:
         top = results[0].probs.top1
         label = results[0].names[top]
         conf = float(results[0].probs.top1conf)
-        return label if conf >= 0.6 else None
+        return label if conf >= 0.85 else None
 
     def annotate(self, frame: np.ndarray, detections: list[Detection]) -> np.ndarray:
         """

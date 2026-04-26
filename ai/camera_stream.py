@@ -47,7 +47,7 @@ from voice_input import listen
 FRAME_WIDTH  = 640          # capture resolution width
 FRAME_HEIGHT = 480          # capture resolution height
 LOOP_INTERVAL = 0.5         # seconds between pipeline runs (2 fps processing)
-DOOR_COOLDOWN = 8.0         # seconds between repeated door announcements
+DOOR_COOLDOWN = 20.0        # seconds between repeated door announcements
 REPEAT_CUES   = ["repeat", "say that again", "what did you say", "come again", "pardon", "say again"]
 
 DOOR_MESSAGES = {
