@@ -37,20 +37,16 @@
       "laundry_room": { "instruction": "go through the door into the laundry room" }
     },
     "bobs_room": {
-      "hallway": { "instruction": "go out through the door to the hallway" }
+      "hallway": { "instruction": "go out through the door and turn left into the hallway" }
     },
     "steves_room": {
-      "hallway": { "instruction": "go out through the door to the hallway" }
+      "hallway": { "instruction": "go out through the door and turn left into the hallway" }
     },
     "bathroom": {
       "hallway": { "instruction": "go out through the door to the hallway" }
     },
-    "master_bathroom": {
-      "hallway":        { "instruction": "go through the door to the hallway" },
-      "master_bedroom": { "instruction": "go through the door into the master bedroom" }
-    },
     "master_bedroom": {
-      "hallway":         { "instruction": "go through the door to the hallway" },
+      "hallway":         { "instruction": "go through the door and turn right into the hallway" },
       "master_bathroom": { "instruction": "go through the door into the master bathroom" }
     }
   },
