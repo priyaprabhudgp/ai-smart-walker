@@ -145,8 +145,13 @@ def run(use_llm: bool = True):
             detections = detector.detect(frame_bgr)
             assign_distances(detections, distances, FRAME_WIDTH)
 
-            # 3. Door classification (only during active navigation)
-            if generator.is_navigating:
+            # 3. Door classification (only when current instruction involves a door)
+            current_step = navigator.current_step()
+            door_expected = current_step is not None and "door" in current_step.lower()
+            if not door_expected:
+                door_consecutive["state"] = None
+                door_consecutive["count"] = 0
+            if generator.is_navigating and door_expected:
                 door_state = detector.classify_door(frame_bgr)
                 if door_state == door_consecutive["state"]:
                     door_consecutive["count"] += 1
