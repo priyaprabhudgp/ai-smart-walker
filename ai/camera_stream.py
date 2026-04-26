@@ -91,6 +91,10 @@ def run(use_llm: bool = True):
 
     cam = init_camera() #init camera
     sensors = UltrasonicArray()
+
+    # UNCOMMENT TO ENABLE STAIRS DETECTION. and replace
+    # detector = ObjectDetector(stairs_model_path="best.pt", device="cpu") 
+
     detector = ObjectDetector(device="cpu")
     interpreter = SceneInterpreter(frame_width=FRAME_WIDTH)
     generator = LanguageGenerator(
