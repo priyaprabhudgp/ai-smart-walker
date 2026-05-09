@@ -39,6 +39,7 @@ SENSORS: dict[str, dict] = {
 
 TIMEOUT = 0.04   # max seconds to wait for echo (covers ~6m range)
 SPEED_OF_SOUND = 17150  # cm/s at ~20°C
+FAILURE_THRESHOLD = 5   # consecutive None reads before declaring a sensor failed
 
 
 # ----- SENSOR CLASS -----
@@ -51,6 +52,9 @@ class UltrasonicArray:
 
     def __init__(self):
         self._active = {}  # position -> pin config
+
+        self._fail_count: dict[str, int] = {pos: 0 for pos in SENSORS}
+        self._failed: dict[str, bool] = {pos: False for pos in SENSORS}
 
         if not GPIO_AVAILABLE:
             print("[UltrasonicArray] RPi.GPIO not available -- returning None for all distances.")
@@ -91,6 +95,7 @@ class UltrasonicArray:
         start = time.time()
         while GPIO.input(echo) == 0:
             if time.time() - start > TIMEOUT:
+                self._track_failure(position, failed=True)
                 return None
             pulse_start = time.time()
 
@@ -99,6 +104,7 @@ class UltrasonicArray:
         start = time.time()
         while GPIO.input(echo) == 1:
             if time.time() - start > TIMEOUT:
+                self._track_failure(position, failed=True)
                 return None
             pulse_end = time.time()
 
@@ -107,9 +113,24 @@ class UltrasonicArray:
 
         # Sanity check:  HC-SR04 range is 2cm to 400cm
         if distance_m < 0.02 or distance_m > 4.0:
+            self._track_failure(position, failed=True)
             return None
 
+        self._track_failure(position, failed=False)
         return distance_m
+
+    def _track_failure(self, position: str, failed: bool):
+        if failed:
+            self._fail_count[position] += 1
+            if self._fail_count[position] >= FAILURE_THRESHOLD:
+                self._failed[position] = True
+        else:
+            self._fail_count[position] = 0
+            self._failed[position] = False
+
+    def failed_sensors(self) -> list[str]:
+        """Returns names of active sensors that have failed consecutively."""
+        return [pos for pos in self._active if self._failed[pos]]
 
     def read_all(self) -> dict[str, Optional[float]]:
         """
