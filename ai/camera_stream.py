@@ -40,6 +40,7 @@ from language_generation import LanguageGenerator
 from ultrasonic import UltrasonicArray
 from navigation import Navigator
 from voice_input import listen
+from audit_log import log_cycle
 
 
 # ----- CONFIG -----
@@ -184,6 +185,9 @@ def run(use_llm: bool = True):
             alert = generator.generate(scene)
             if alert:
                 speak(alert)
+
+            # 6. Audit log — one entry per cycle
+            log_cycle(distances, detections, scene, alert, current_step)
 
             elapsed = time.monotonic() - loop_start
             sleep_time = LOOP_INTERVAL - elapsed
