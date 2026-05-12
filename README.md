@@ -110,20 +110,24 @@ python navigation.py
 
 ### First time setup
 
-**1. Copy files to Pi (from Windows):**
-```cmd
-scp -r "C:\Users\<user>\ai-smart-walker\ai" pipriya@<ip>:~/ai-smart-walker/
-scp -r "C:\Users\<user>\ai-smart-walker\maps" pipriya@<ip>:~/ai-smart-walker/
-scp "C:\Users\<user>\ai-smart-walker\requirements-pi.txt" pipriya@<ip>:~/ai-smart-walker/
-scp "C:\Users\<user>\ai-smart-walker\.env" pipriya@<ip>:~/ai-smart-walker/
-```
-
-**2. SSH into Pi:**
+**1. SSH into Pi:**
 ```bash
 ssh pipriya@<ip>
 ```
 
-**3. Install dependencies:**
+**2. Clone the repo:**
+```bash
+cd ~
+git clone https://github.com/priyaprabhudgp/ai-smart-walker.git
+cd ai-smart-walker
+```
+
+**3. Copy your `.env` file (Gemini API key — not in the repo):**
+```cmd
+scp "C:\Users\<user>\ai-smart-walker\.env" pipriya@<ip>:~/ai-smart-walker/
+```
+
+**4. Install dependencies:**
 ```bash
 sudo apt update && sudo apt install espeak espeak-ng python3-dev portaudio19-dev
 python3 -m venv --system-site-packages ~/ai-smart-walker/venv
@@ -148,11 +152,13 @@ python camera_stream.py --no-llm
 
 Press `Ctrl+C` to stop.
 
-### Pushing updates to Pi (from Windows)
+### Pushing updates to Pi
 
-```cmd
-scp -r "C:\Users\<user>\ai-smart-walker\ai" pipriya@<ip>:~/ai-smart-walker/
-scp -r "C:\Users\<user>\ai-smart-walker\maps" pipriya@<ip>:~/ai-smart-walker/
+SSH in and pull:
+```bash
+ssh pipriya@<ip>
+cd ~/ai-smart-walker
+git pull origin main
 ```
 
 ---
