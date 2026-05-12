@@ -198,6 +198,7 @@ def run(use_llm: bool = True):
         print("\n[camera_stream] Stopped.")
     finally:
         cam.stop()
+        cam.close()
         sensors.cleanup()
 
 
