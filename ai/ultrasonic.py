@@ -22,7 +22,7 @@ import time
 from typing import Optional
 
 try:
-    import RPi.GPIO as GPIO
+    import lgpio
     GPIO_AVAILABLE = True
 except ImportError:
     GPIO_AVAILABLE = False
@@ -52,22 +52,21 @@ class UltrasonicArray:
 
     def __init__(self):
         self._active = {}  # position -> pin config
+        self._handle = None
 
         self._fail_count: dict[str, int] = {pos: 0 for pos in SENSORS}
         self._failed: dict[str, bool] = {pos: False for pos in SENSORS}
 
         if not GPIO_AVAILABLE:
-            print("[UltrasonicArray] RPi.GPIO not available -- returning None for all distances.")
+            print("[UltrasonicArray] lgpio not available -- returning None for all distances.")
             return
 
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
+        self._handle = lgpio.gpiochip_open(0)
 
         for position, pins in SENSORS.items():
             if pins["trig"] is not None and pins["echo"] is not None:
-                GPIO.setup(pins["trig"], GPIO.OUT)
-                GPIO.setup(pins["echo"], GPIO.IN)
-                GPIO.output(pins["trig"], False)
+                lgpio.gpio_claim_output(self._handle, pins["trig"], 0)
+                lgpio.gpio_claim_input(self._handle, pins["echo"])
                 self._active[position] = pins
                 print(f"[UltrasonicArray] {position} sensor ready (TRIG={pins['trig']} ECHO={pins['echo']})")
 
@@ -78,7 +77,7 @@ class UltrasonicArray:
         Read distance from a single sensor.
         Returns distance in meters, or None if sensor not wired or read failed.
         """
-        if position not in self._active:
+        if position not in self._active or self._handle is None:
             return None
 
         pins = self._active[position]
@@ -86,14 +85,14 @@ class UltrasonicArray:
         echo = pins["echo"]
 
         # Send 10us pulse
-        GPIO.output(trig, True)
+        lgpio.gpio_write(self._handle, trig, 1)
         time.sleep(0.00001)
-        GPIO.output(trig, False)
+        lgpio.gpio_write(self._handle, trig, 0)
 
         # Wait for echo to go high (sound leaves sensor)
         pulse_start = time.time()
         start = time.time()
-        while GPIO.input(echo) == 0:
+        while lgpio.gpio_read(self._handle, echo) == 0:
             if time.time() - start > TIMEOUT:
                 self._track_failure(position, failed=True)
                 return None
@@ -102,7 +101,7 @@ class UltrasonicArray:
         # Wait for echo to go low (sound comes back)
         pulse_end = time.time()
         start = time.time()
-        while GPIO.input(echo) == 1:
+        while lgpio.gpio_read(self._handle, echo) == 1:
             if time.time() - start > TIMEOUT:
                 self._track_failure(position, failed=True)
                 return None
@@ -111,7 +110,7 @@ class UltrasonicArray:
         distance_cm = (pulse_end - pulse_start) * SPEED_OF_SOUND
         distance_m  = round(distance_cm / 100, 2)
 
-        # Sanity check:  HC-SR04 range is 2cm to 400cm
+        # Sanity check: HC-SR04 range is 2cm to 400cm
         if distance_m < 0.02 or distance_m > 4.0:
             self._track_failure(position, failed=True)
             return None
@@ -141,10 +140,6 @@ class UltrasonicArray:
 
     def cleanup(self):
         """Release GPIO pins. Call when shutting down."""
-        if GPIO_AVAILABLE:
-            GPIO.cleanup()
-
-
-
-
-
+        if self._handle is not None:
+            lgpio.gpiochip_close(self._handle)
+            self._handle = None
