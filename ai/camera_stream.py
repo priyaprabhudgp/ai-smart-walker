@@ -49,7 +49,7 @@ FRAME_WIDTH  = 640          # capture resolution width
 FRAME_HEIGHT = 480          # capture resolution height
 LOOP_INTERVAL = 0.5         # seconds between pipeline runs (2 fps processing)
 DOOR_COOLDOWN = 20.0        # seconds between repeated door announcements
-SENSOR_WARN_COOLDOWN = 30.0 # seconds between repeated sensor failure warnings
+SENSOR_WARN_COOLDOWN = 60.0 # seconds between repeated sensor failure warnings
 REPEAT_CUES   = ["repeat", "say that again", "what did you say", "come again", "pardon", "say again"]
 
 DOOR_MESSAGES = {

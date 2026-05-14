@@ -187,12 +187,8 @@ class LanguageGenerator:
         if self.is_navigating:
             if urgency == "low":
                 return None
-            alert = self._build_alert(scene, user_input)
-            if urgency == "medium":
-                self._queued_alert = alert
-                return None
-            # critical or high: return immediately to interrupt
-            return alert
+            # medium, high, critical all interrupt during navigation
+            return self._build_alert(scene, user_input)
 
         return self._build_alert(scene, user_input)
 
