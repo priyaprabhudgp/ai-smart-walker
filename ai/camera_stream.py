@@ -132,7 +132,7 @@ def run(use_llm: bool = True):
 
     # ----- DETECTION LOOP (main thread) -----
     last_door_spoken = 0.0
-    last_sensor_warn = 0.0
+    # last_sensor_warn = 0.0
     door_consecutive = {"state": None, "count": 0}  # must see same state 3x in a row
     DOOR_CONFIRM_FRAMES = 3
     try:
@@ -145,11 +145,11 @@ def run(use_llm: bool = True):
 
             # 2. Sensor distances + object detection
             distances  = sensors.read_all()
-            failed = sensors.failed_sensors()
-            if failed and (time.monotonic() - last_sensor_warn) >= SENSOR_WARN_COOLDOWN:
-                last_sensor_warn = time.monotonic()
-                names = " and ".join(failed)
-                speak(f"Warning: the {names} sensor{'s are' if len(failed) > 1 else ' is'} not responding. Please proceed with extra caution.")
+            # failed = sensors.failed_sensors()
+            # if failed and (time.monotonic() - last_sensor_warn) >= SENSOR_WARN_COOLDOWN:
+            #     last_sensor_warn = time.monotonic()
+            #     names = " and ".join(failed)
+            #     speak(f"Warning: the {names} sensor{'s are' if len(failed) > 1 else ' is'} not responding. Please proceed with extra caution.")
             detections = detector.detect(frame_bgr)
             assign_distances(detections, distances, FRAME_WIDTH)
 
