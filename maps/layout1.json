@@ -13,7 +13,7 @@
       "backyard":    { "instruction": "continue straight through the backyard door" }
     },
     "hallway": {
-      "living_room":     { "instruction": "walk to the end of the hallway and go through the door into the living room" },
+      "living_room":     { "instruction": "turn right, walk forward, and go through the hallway door into the living room" },
       "bobs_room":       { "instruction": "turn right through the first door into Bob's room" },
       "steves_room":     { "instruction": "turn right through the second door into Steve's room" },
       "bathroom":        { "instruction": "walk straight to the end of the hallway through the bathroom door" },
@@ -46,7 +46,7 @@
       "hallway": { "instruction": "go out through the door to the hallway" }
     },
     "master_bedroom": {
-      "hallway":         { "instruction": "go through the door and turn right into the hallway" },
+      "hallway":         { "instruction": "walk through the bedroom door and go straight into the hallway" },
       "master_bathroom": { "instruction": "go through the door into the master bathroom" }
     }
   },
