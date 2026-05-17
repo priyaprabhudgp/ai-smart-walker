@@ -37,9 +37,9 @@ SENSORS: dict[str, dict] = {
     "down":  {"trig": 13, "echo": 19},
 }
 
-TIMEOUT = 0.04   # max seconds to wait for echo (covers ~6m range)
+TIMEOUT = 0.06   # max seconds to wait for echo — extra margin for OS scheduling jitter on busy Pi
 SPEED_OF_SOUND = 17150  # cm/s at ~20°C
-FAILURE_THRESHOLD = 5   # consecutive None reads before declaring a sensor failed
+FAILURE_THRESHOLD = 10  # consecutive None reads before declaring a sensor failed
 
 
 # ----- SENSOR CLASS -----
