@@ -297,3 +297,8 @@ Save as `maps/layoutN.json` and add the floor plan PDF to `maps/rawdiagrams/`.
 - Voice recognition uses Google Speech API — requires internet on the Pi
 - The ALSA warnings printed at startup are harmless — PyAudio probes all audio drivers on init
 - If the camera shows "device busy" on startup, a previous process wasn't stopped cleanly: `sudo pkill -f camera_stream.py`
+
+##Documentation and Media
+
+- Docs: https://drive.google.com/drive/folders/1z78CIVQ6NRQ4izaFbOxU4GfkqnKC1GNC?usp=drive_link 
+- Media: https://drive.google.com/drive/folders/132ME-axQYogrenPG6eLqmw5hXbRn3p1d?usp=sharing
