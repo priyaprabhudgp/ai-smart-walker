@@ -239,5 +239,5 @@ python pipeline_test.py
 ## Documentation and Media
 
 - [Project Docs](https://drive.google.com/drive/folders/1z78CIVQ6NRQ4izaFbOxU4GfkqnKC1GNC?usp=drive_link)
-- [Demo Video](https://drive.google.com/drive/u/1/folders/132ME-axQYogrenPG6eLqmw5hXbRn3p1d)
+- [Demo Video]([https://drive.google.com/drive/u/1/folders/132ME-axQYogrenPG6eLqmw5hXbRn3p1d](https://drive.google.com/file/d/1Kr7q-EWURKGRKXhBwtN3RUdj6aManCDA/view?usp=sharing))
 - [Walker](https://drive.google.com/drive/u/1/folders/132ME-axQYogrenPG6eLqmw5hXbRn3p1d)
